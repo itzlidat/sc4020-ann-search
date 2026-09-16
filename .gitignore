@@ -1,8 +1,6 @@
-data/*.npy
-data/*.json
+data/*
+!data/fvecs_loader.py
 __pycache__/
 venv/
 *.pyc
 .ipynb_checkpoints/
-results/*.png
-!results/.gitkeep
