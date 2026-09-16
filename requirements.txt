@@ -1,0 +1,8 @@
+numpy
+faiss-cpu
+hnswlib
+annoy
+sentence-transformers
+datasets
+matplotlib
+scikit-learn
