@@ -1,0 +1,76 @@
+{
+    "SIFT1M": {
+        "dataset": {
+            "base_vectors": 1000000,
+            "query_vectors": 10000,
+            "train_vectors": 100000,
+            "dimensions": 128
+        },
+        "PQ": {
+            "parameters": {
+                "m": 8,
+                "nbits": 8
+            },
+            "recall_at_10": 0.3164,
+            "avg_query_time_ms": 1.869082012202125,
+            "index_size_mb": 7.754476547241211
+        },
+        "IVF": {
+            "parameters": {
+                "nlist": 1024,
+                "nprobe": 8
+            },
+            "recall_at_10": 0.83711,
+            "avg_query_time_ms": 0.1284799437271431,
+            "index_size_mb": 496.41858959198
+        },
+        "IVF+PQ": {
+            "parameters": {
+                "nlist": 1024,
+                "nprobe": 8,
+                "m": 8,
+                "nbits": 8
+            },
+            "recall_at_10": 0.36602999999999997,
+            "avg_query_time_ms": 0.04368737784679979,
+            "index_size_mb": 15.891773223876953
+        }
+    },
+    "Wikipedia": {
+        "dataset": {
+            "base_vectors": 500000,
+            "query_vectors": 1000,
+            "train_vectors": 100000,
+            "dimensions": 384
+        },
+        "PQ": {
+            "parameters": {
+                "m": 8,
+                "nbits": 8
+            },
+            "recall_at_10": 0.10210000000000001,
+            "avg_query_time_ms": 1.1349615073995665,
+            "index_size_mb": 4.189779281616211
+        },
+        "IVF": {
+            "parameters": {
+                "nlist": 512,
+                "nprobe": 8
+            },
+            "recall_at_10": 0.8332999999999999,
+            "avg_query_time_ms": 0.22222317347768694,
+            "index_size_mb": 736.990611076355
+        },
+        "IVF+PQ": {
+            "parameters": {
+                "nlist": 512,
+                "nprobe": 8,
+                "m": 8,
+                "nbits": 8
+            },
+            "recall_at_10": 0.2523,
+            "avg_query_time_ms": 0.04006245045457035,
+            "index_size_mb": 8.758472442626953
+        }
+    }
+}
