@@ -1,10 +1,15 @@
 """
-Benchmark PQ, IVF, and IVF+PQ on SIFT1M and Wikipedia embeddings.
+Benchmark PQ (ADC and SDC), IVF, and IVF+PQ
+on SIFT1M and Wikipedia embeddings.
 
 Metrics:
 - Recall@10
 - Average query latency (ms)
 - Index size (MB)
+
+PQ distance calculations:
+- ADC: Asymmetric Distance Calculation
+- SDC: Symmetric Distance Calculation
 
 Results are saved to:
 results/pq_ivf_results.json
@@ -13,18 +18,19 @@ results/pq_ivf_results.json
 from pathlib import Path
 import json
 import tempfile
+import matplotlib.pyplot as plt
 
 import numpy as np
 
-from eval.harness import (
+from harness import (
     compute_recall_at_k,
     measure_query_time,
     measure_index_size,
 )
 
-from methods.PQ import PQ
-from methods.IVF import IVF
-from methods.PQ_IVF import IVFPQ
+from PQ import PQ
+from IVF import IVF
+from PQ_IVF import IVFPQ
 
 from fvecs_loader import load_fvecs, load_ivecs
 
@@ -39,7 +45,6 @@ from fvecs_loader import load_fvecs, load_ivecs
 #
 # Before running this script, replace the two paths below with the
 # locations where you downloaded/saved the datasets on your computer.
-
 
 # Example:
 # SIFT_DIR = Path("/Users/yourname/Downloads/sift")
@@ -62,14 +67,14 @@ WIKI_DIR = Path(
 # Assumes this file is:
 # sc4020-ann-search/eval/run_pq_ivf.py
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path.cwd()
 
 # Results produced by this script will still be saved
 # inside the GitHub project's results/ folder.
 RESULTS_DIR = PROJECT_ROOT / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-OUTPUT_PATH = RESULTS_DIR / "pq_ivf_results.json"
+OUTPUT_PATH = RESULTS_DIR / "pq_ivf_results2.json"
 
 
 # =================================================
@@ -109,81 +114,6 @@ def get_index_size(model):
     return size_mb
 
 
-def compute_ground_truth_batched(
-    queries,
-    base,
-    k=10,
-    batch_size=50,
-):
-    """
-    Exact L2 ground truth in batches to avoid creating
-    one huge query-by-database distance matrix.
-    """
-
-    results = []
-
-    base_sq = np.sum(
-        base ** 2,
-        axis=1,
-    )
-
-    total_queries = len(queries)
-
-    for start in range(0, total_queries, batch_size):
-        end = min(
-            start + batch_size,
-            total_queries,
-        )
-
-        query_batch = queries[start:end]
-
-        query_sq = np.sum(
-            query_batch ** 2,
-            axis=1,
-            keepdims=True,
-        )
-
-        distances = (
-            query_sq
-            + base_sq
-            - 2 * query_batch @ base.T
-        )
-
-        ids = np.argpartition(
-            distances,
-            kth=k - 1,
-            axis=1,
-        )[:, :k]
-
-        rows = np.arange(
-            len(query_batch)
-        )[:, None]
-
-        top_distances = distances[
-            rows,
-            ids,
-        ]
-
-        order = np.argsort(
-            top_distances,
-            axis=1,
-        )
-
-        ids = ids[
-            rows,
-            order,
-        ]
-
-        results.append(ids)
-
-        print(
-            f"Ground truth: "
-            f"{end}/{total_queries} queries"
-        )
-
-    return np.vstack(results)
-
-
 def benchmark_method(
     name,
     model,
@@ -192,6 +122,7 @@ def benchmark_method(
     queries,
     ground_truth,
     k=10,
+    search_type="default",
 ):
     """Build and evaluate one ANN method."""
 
@@ -208,10 +139,23 @@ def benchmark_method(
     retrieved = []
 
     def timed_search(query):
-        ids = model.search(
-            query,
-            k=k,
-        )
+
+        # PQ symmetric distance calculation
+        if search_type == "symmetric":
+            ids = model.search_symmetric(
+                query,
+                k=k,
+            )
+
+        # Normal search:
+        # - PQ asymmetric
+        # - IVF
+        # - IVF+PQ
+        else:
+            ids = model.search(
+                query,
+                k=k,
+            )
 
         retrieved.append(ids)
 
@@ -261,6 +205,150 @@ def benchmark_method(
     return result
 
 
+
+def plot_results(all_results):
+    """Plot benchmark results for SIFT1M and Wikipedia."""
+
+    methods = ["PQ-ADC","PQ-SDC", "IVF", "IVF+PQ"]
+    labels = ["PQ\nADC", "PQ\nSDC","IVF","IVF+PQ"]
+
+    datasets = ["SIFT1M", "Wikipedia"]
+
+    # =================================================
+    # Recall@10
+    # =================================================
+
+    x = np.arange(len(methods))
+    width = 0.35
+
+    sift_recall = [
+        all_results["SIFT1M"][method]["recall_at_10"]
+        for method in methods
+    ]
+
+    wiki_recall = [
+        all_results["Wikipedia"][method]["recall_at_10"]
+        for method in methods
+    ]
+
+    plt.figure(figsize=(8, 5))
+
+    plt.bar(
+        x - width / 2,
+        sift_recall,
+        width,
+        label="SIFT1M",
+    )
+
+    plt.bar(
+        x + width / 2,
+        wiki_recall,
+        width,
+        label="Wikipedia",
+    )
+
+    plt.xlabel("Method")
+    plt.ylabel("Recall@10")
+    plt.title("Recall@10 Comparison")
+    plt.xticks(x, labels)
+    plt.ylim(0, 1)
+    plt.legend()
+    plt.tight_layout()
+
+    recall_path = RESULTS_DIR / "recall_at_10_2.png"
+    plt.savefig(recall_path, dpi=300)
+    plt.show()
+
+
+    # =================================================
+    # Average query latency
+    # =================================================
+
+    sift_latency = [
+        all_results["SIFT1M"][method]["avg_query_time_ms"]
+        for method in methods
+    ]
+
+    wiki_latency = [
+        all_results["Wikipedia"][method]["avg_query_time_ms"]
+        for method in methods
+    ]
+
+    plt.figure(figsize=(8, 5))
+
+    plt.bar(
+        x - width / 2,
+        sift_latency,
+        width,
+        label="SIFT1M",
+    )
+
+    plt.bar(
+        x + width / 2,
+        wiki_latency,
+        width,
+        label="Wikipedia",
+    )
+
+    plt.xlabel("Method")
+    plt.ylabel("Average Query Time (ms)")
+    plt.title("Average Query Latency Comparison")
+    plt.xticks(x, methods)
+    plt.legend()
+    plt.tight_layout()
+
+    latency_path = RESULTS_DIR / "query_latency_2.png"
+    plt.savefig(latency_path, dpi=300)
+    plt.show()
+
+
+    # =================================================
+    # Index size
+    # =================================================
+
+    sift_size = [
+        all_results["SIFT1M"][method]["index_size_mb"]
+        for method in methods
+    ]
+
+    wiki_size = [
+        all_results["Wikipedia"][method]["index_size_mb"]
+        for method in methods
+    ]
+
+    plt.figure(figsize=(8, 5))
+
+    plt.bar(
+        x - width / 2,
+        sift_size,
+        width,
+        label="SIFT1M",
+    )
+
+    plt.bar(
+        x + width / 2,
+        wiki_size,
+        width,
+        label="Wikipedia",
+    )
+
+    plt.xlabel("Method")
+    plt.ylabel("Index Size (MB)")
+    plt.title("Index Size Comparison")
+    plt.xticks(x, methods)
+    plt.legend()
+    plt.tight_layout()
+
+    size_path = RESULTS_DIR / "index_size_2.png"
+    plt.savefig(size_path, dpi=300)
+    plt.show()
+
+    print("\nGraphs saved to:")
+    print(recall_path)
+    print(latency_path)
+    print(size_path)
+
+
 # =================================================
 # SIFT1M
 # =================================================
@@ -299,15 +387,17 @@ def run_sift():
             "dimensions": base.shape[1],
         }
     }
+    
+    # PQ - Asymmetric Distance Calculation (ADC)
 
-    # PQ
-    results["PQ"] = {
+    results["PQ-ADC"] = {
         "parameters": {
             "m": 8,
             "nbits": 8,
+            "distance_type": "asymmetric",
         },
         **benchmark_method(
-            "PQ",
+            "PQ (Asymmetric)",
             PQ(
                 m=8,
                 nbits=8,
@@ -316,6 +406,29 @@ def run_sift():
             train,
             queries,
             ground_truth,
+            search_type="default",
+        ),
+    }
+
+    # PQ - Symmetric Distance Calculation (SDC
+
+    results["PQ-SDC"] = {
+        "parameters": {
+            "m": 8,
+            "nbits": 8,
+            "distance_type": "symmetric",
+        },
+        **benchmark_method(
+            "PQ (Symmetric)",
+            PQ(
+                m=8,
+                nbits=8,
+            ),
+            base,
+            train,
+            queries,
+            ground_truth,
+            search_type="symmetric",
         ),
     }
 
@@ -373,6 +486,7 @@ def run_wiki():
     print("WIKIPEDIA BENCHMARK")
     print("==============================")
 
+    # Load Wikipedia embeddings
     base = np.load(
         WIKI_DIR / "wiki_base_embeddings.npy"
     ).astype(np.float32)
@@ -385,62 +499,21 @@ def run_wiki():
         WIKI_DIR / "wiki_train_embeddings.npy"
     ).astype(np.float32)
 
-    print("Base:   ", base.shape)
-    print("Queries:", queries.shape)
-    print("Train:  ", train.shape)
+    # Load precomputed ground truth
+    ground_truth = np.load(
+        WIKI_DIR / "wiki_groundtruth.npy"
+    )[:, :10]
+
+    print("Base:        ", base.shape)
+    print("Queries:     ", queries.shape)
+    print("Train:       ", train.shape)
+    print("Ground truth:", ground_truth.shape)
 
     # Wikipedia uses cosine similarity.
     # L2 search on normalized vectors gives the same ranking.
     base = normalize_vectors(base)
     queries = normalize_vectors(queries)
     train = normalize_vectors(train)
-
-    groundtruth_path = (
-        WIKI_DIR / "wiki_groundtruth.npy"
-    )
-
-    # Reuse ground truth if already generated
-    if groundtruth_path.exists():
-
-        print(
-            "\nLoading saved Wikipedia "
-            "ground truth..."
-        )
-
-        ground_truth = np.load(
-            groundtruth_path
-        )
-
-    else:
-
-        print(
-            "\nComputing exact Wikipedia "
-            "ground truth..."
-        )
-
-        ground_truth = (
-            compute_ground_truth_batched(
-                queries,
-                base,
-                k=10,
-                batch_size=50,
-            )
-        )
-
-        np.save(
-            groundtruth_path,
-            ground_truth,
-        )
-
-        print(
-            "Ground truth saved to:",
-            groundtruth_path,
-        )
-
-    print(
-        "Ground truth:",
-        ground_truth.shape,
-    )
 
     results = {
         "dataset": {
@@ -451,14 +524,16 @@ def run_wiki():
         }
     }
 
-    # PQ
-    results["PQ"] = {
+    # PQ - Asymmetric Distance Calculation (ADC)
+
+    results["PQ-ADC"] = {
         "parameters": {
             "m": 8,
             "nbits": 8,
+            "distance_type": "asymmetric",
         },
         **benchmark_method(
-            "PQ",
+            "PQ (Asymmetric)",
             PQ(
                 m=8,
                 nbits=8,
@@ -467,6 +542,28 @@ def run_wiki():
             train,
             queries,
             ground_truth,
+            search_type="default",
+        ),
+    }
+    # PQ - Symmetric Distance Calculation (SD
+
+    results["PQ-SDC"] = {
+        "parameters": {
+            "m": 8,
+            "nbits": 8,
+            "distance_type": "symmetric",
+        },
+        **benchmark_method(
+            "PQ (Symmetric)",
+            PQ(
+                m=8,
+                nbits=8,
+            ),
+            base,
+            train,
+            queries,
+            ground_truth,
+            search_type="symmetric",
         ),
     }
 
@@ -546,9 +643,12 @@ if __name__ == "__main__":
         OUTPUT_PATH,
     )
 
+    # Plot benchmark results
+    plot_results(all_results)
+
     print(
         "\nNote: query timing includes a very "
-        "small amount of Python overhead from "
+        "small amount of Python overhead from "ok 
         "storing returned neighbour IDs. The "
         "same evaluation structure is used for "
         "PQ, IVF, and IVF+PQ."
