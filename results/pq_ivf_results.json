@@ -6,13 +6,24 @@
             "train_vectors": 100000,
             "dimensions": 128
         },
-        "PQ": {
+        "PQ-ADC": {
             "parameters": {
                 "m": 8,
-                "nbits": 8
+                "nbits": 8,
+                "distance_type": "asymmetric"
             },
             "recall_at_10": 0.3164,
-            "avg_query_time_ms": 1.869082012202125,
+            "avg_query_time_ms": 1.8761144545744173,
+            "index_size_mb": 7.754476547241211
+        },
+        "PQ-SDC": {
+            "parameters": {
+                "m": 8,
+                "nbits": 8,
+                "distance_type": "symmetric"
+            },
+            "recall_at_10": 0.20245,
+            "avg_query_time_ms": 2.772309064818546,
             "index_size_mb": 7.754476547241211
         },
         "IVF": {
@@ -21,7 +32,7 @@
                 "nprobe": 8
             },
             "recall_at_10": 0.83711,
-            "avg_query_time_ms": 0.1284799437271431,
+            "avg_query_time_ms": 0.10129465537611396,
             "index_size_mb": 496.41858959198
         },
         "IVF+PQ": {
@@ -32,7 +43,7 @@
                 "nbits": 8
             },
             "recall_at_10": 0.36602999999999997,
-            "avg_query_time_ms": 0.04368737784679979,
+            "avg_query_time_ms": 0.03562132668448612,
             "index_size_mb": 15.891773223876953
         }
     },
@@ -43,13 +54,24 @@
             "train_vectors": 100000,
             "dimensions": 384
         },
-        "PQ": {
+        "PQ-ADC": {
             "parameters": {
                 "m": 8,
-                "nbits": 8
+                "nbits": 8,
+                "distance_type": "asymmetric"
             },
             "recall_at_10": 0.10210000000000001,
-            "avg_query_time_ms": 1.1349615073995665,
+            "avg_query_time_ms": 1.2503498024307191,
+            "index_size_mb": 4.189779281616211
+        },
+        "PQ-SDC": {
+            "parameters": {
+                "m": 8,
+                "nbits": 8,
+                "distance_type": "symmetric"
+            },
+            "recall_at_10": 0.06,
+            "avg_query_time_ms": 1.5972034961450845,
             "index_size_mb": 4.189779281616211
         },
         "IVF": {
@@ -58,7 +80,7 @@
                 "nprobe": 8
             },
             "recall_at_10": 0.8332999999999999,
-            "avg_query_time_ms": 0.22222317347768694,
+            "avg_query_time_ms": 0.21890233689919114,
             "index_size_mb": 736.990611076355
         },
         "IVF+PQ": {
@@ -69,7 +91,7 @@
                 "nbits": 8
             },
             "recall_at_10": 0.2523,
-            "avg_query_time_ms": 0.04006245045457035,
+            "avg_query_time_ms": 0.039621536852791905,
             "index_size_mb": 8.758472442626953
         }
     }
