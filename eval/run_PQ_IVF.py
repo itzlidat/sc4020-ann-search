@@ -46,17 +46,18 @@ from fvecs_loader import load_fvecs, load_ivecs
 # Before running this script, replace the two paths below with the
 # locations where you downloaded/saved the datasets on your computer.
 
+
 # Example:
 # SIFT_DIR = Path("/Users/yourname/Downloads/sift")
 SIFT_DIR = Path(
-    "/PATH/TO/YOUR/SIFT/FOLDER"
+    "INSERT_PATH"
 )
 
 
 # Example:
 # WIKI_DIR = Path("/Users/yourname/Downloads/wiki data")
 WIKI_DIR = Path(
-    "/PATH/TO/YOUR/WIKIPEDIA/FOLDER"
+    "INSERT_PATH"
 )
 
 # =================================================
@@ -74,7 +75,7 @@ PROJECT_ROOT = Path.cwd()
 RESULTS_DIR = PROJECT_ROOT / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-OUTPUT_PATH = RESULTS_DIR / "pq_ivf_results2.json"
+OUTPUT_PATH = RESULTS_DIR / "pq_ivf_results.json"
 
 
 # =================================================
@@ -209,17 +210,15 @@ def benchmark_method(
 def plot_results(all_results):
     """Plot benchmark results for SIFT1M and Wikipedia."""
 
-    methods = ["PQ-ADC","PQ-SDC", "IVF", "IVF+PQ"]
-    labels = ["PQ\nADC", "PQ\nSDC","IVF","IVF+PQ"]
+    methods = ["PQ-ADC", "PQ-SDC", "IVF", "IVF+PQ"]
+    labels = ["PQ\nADC", "PQ\nSDC", "IVF", "IVF+PQ"]
 
-    datasets = ["SIFT1M", "Wikipedia"]
+    x = np.arange(len(methods))
+    width = 0.35
 
     # =================================================
     # Recall@10
     # =================================================
-
-    x = np.arange(len(methods))
-    width = 0.35
 
     sift_recall = [
         all_results["SIFT1M"][method]["recall_at_10"]
@@ -255,10 +254,9 @@ def plot_results(all_results):
     plt.legend()
     plt.tight_layout()
 
-    recall_path = RESULTS_DIR / "recall_at_10_2.png"
+    recall_path = RESULTS_DIR / "recall_at_10.png"
     plt.savefig(recall_path, dpi=300)
     plt.show()
-
 
     # =================================================
     # Average query latency
@@ -293,14 +291,13 @@ def plot_results(all_results):
     plt.xlabel("Method")
     plt.ylabel("Average Query Time (ms)")
     plt.title("Average Query Latency Comparison")
-    plt.xticks(x, methods)
+    plt.xticks(x, labels)
     plt.legend()
     plt.tight_layout()
 
-    latency_path = RESULTS_DIR / "query_latency_2.png"
+    latency_path = RESULTS_DIR / "query_latency.png"
     plt.savefig(latency_path, dpi=300)
     plt.show()
-
 
     # =================================================
     # Index size
@@ -335,18 +332,13 @@ def plot_results(all_results):
     plt.xlabel("Method")
     plt.ylabel("Index Size (MB)")
     plt.title("Index Size Comparison")
-    plt.xticks(x, methods)
+    plt.xticks(x, labels)
     plt.legend()
     plt.tight_layout()
 
-    size_path = RESULTS_DIR / "index_size_2.png"
+    size_path = RESULTS_DIR / "index_size.png"
     plt.savefig(size_path, dpi=300)
     plt.show()
-
-    print("\nGraphs saved to:")
-    print(recall_path)
-    print(latency_path)
-    print(size_path)
 
 
 # =================================================
@@ -648,7 +640,7 @@ if __name__ == "__main__":
 
     print(
         "\nNote: query timing includes a very "
-        "small amount of Python overhead from "ok 
+        "small amount of Python overhead from "
         "storing returned neighbour IDs. The "
         "same evaluation structure is used for "
         "PQ, IVF, and IVF+PQ."
