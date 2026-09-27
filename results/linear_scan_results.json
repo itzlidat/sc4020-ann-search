@@ -1,20 +1,18 @@
 {
   "sift1m": {
     "optimised": true,
-    "build_time_sec": 0.06923695899968152,
-    "avg_query_time_ms": 11.245463016123177,
-    "qps": 88.92475112552063,
-    "recall_at_1": 0.9926,
-    "recall_at_10": 0.9992800000000001,
-    "recall_at_100": 0.9998850000000002
+    "recall_at_10": 0.9993200000000001,
+    "avg_query_time_ms": 11.300049447193668,
+    "build_time_sec": 0.04111333300170372,
+    "index_size_mb": 488.2813720703125,
+    "qps": 88.49518797887622
   },
   "wikipedia": {
     "optimised": true,
-    "build_time_sec": 0.16168566700071096,
-    "avg_query_time_ms": 12.272531742986757,
-    "qps": 81.48277966944013,
-    "recall_at_1": 1.0,
     "recall_at_10": 1.0,
-    "recall_at_100": 1.0
+    "avg_query_time_ms": 12.534564783949463,
+    "build_time_sec": 0.21133320900116814,
+    "index_size_mb": 732.4219970703125,
+    "qps": 79.77939539476489
   }
 }

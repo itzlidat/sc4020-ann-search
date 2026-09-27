@@ -1,161 +1,378 @@
 """Random Projection LSH approximate nearest-neighbour search.
 
-Repository-compatible implementation following the same dataset and
-load/build/search/measure/record pattern as methods/annoy.py.
+Shared repository interface:
+    build_index(vectors)
+    search(q, k) -> list[int]
+    save(path)
 
-Datasets used by the repository:
-    SIFT1M
-        data/sift/sift_base.fvecs
-        data/sift/sift_query.fvecs
-        data/sift/sift_groundtruth.ivecs
+Uses the same SIFT1M and Wikipedia datasets as methods/annoy_method.py.
 
-    Wikipedia sentence embeddings
-        data/wiki_base_embeddings.npy
-        data/wiki_query_embeddings.npy
+Run from repository root:
+    python methods/lsh.py
 
-Wikipedia has no supplied ground-truth file, so exact ground truth is
-generated from the L2-normalised base/query embeddings, matching the
-cosine/angular setup used by Annoy.
+---------------------------------------------------------------
+STANDARDISED PARAMETERS
+---------------------------------------------------------------
 
-Run from the repository root:
-    python methods/lsh_random_projection.py
+SIFT1M:
+    Standard:
+        tables       = 10
+        hashes/table = 8
+        width        = 744.6261
+
+    Low:
+        tables       = 10
+        hashes/table = 8
+        width        = 496.4174
+
+    Medium:
+        tables       = 10
+        hashes/table = 8
+        width        = 744.6261
+
+    High:
+        tables       = 10
+        hashes/table = 8
+        width        = 992.8348
+
+These widths were selected empirically from the SIFT1M
+projection-scale calibration and parameter experiments.
+
+WIKIPEDIA:
+    Wikipedia embeddings are explicitly L2-normalised.
+    Therefore, SIFT1M widths are NOT reused for Wikipedia.
+
+---------------------------------------------------------------
+PARAMETER SWEEP
+---------------------------------------------------------------
+
+Set:
+
+    RUN_PARAMETER_SWEEP = False
+
+for the normal standardised experiment.
+
+Set:
+
+    RUN_PARAMETER_SWEEP = True
+
+to run the full parameter sweep.
+
+The sweep is useful for analysing the recall/speed/candidate
+trade-off, but should normally be switched OFF for the final
+standardised comparison.
 """
 
 import gc
 import json
 import os
 import sys
+import tempfile
 import time
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Set, Tuple
+from typing import DefaultDict, Dict, List, Tuple
 
 import numpy as np
 
-# --------------------------------------------------------------------------- #
-# Repository setup
-# --------------------------------------------------------------------------- #
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# ==============================================================
+# PROJECT PATH
+# ==============================================================
+
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    )
+)
 
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+
+# ==============================================================
+# PROJECT IMPORTS
+# ==============================================================
+
 from data.fvecs_loader import load_fvecs, load_ivecs  # noqa: E402
+
 from eval.harness import (  # noqa: E402
     compute_recall_at_k,
     load_ground_truth,
+    measure_index_size,
     measure_query_time,
 )
 
-# --------------------------------------------------------------------------- #
-# Dataset paths -- deliberately identical to methods/annoy.py
-# --------------------------------------------------------------------------- #
 
-SIFT_DIR = os.path.join(PROJECT_ROOT, "data", "sift")
+# ==============================================================
+# GENERAL SETTINGS
+# ==============================================================
 
-SIFT_BASE = os.path.join(SIFT_DIR, "sift_base.fvecs")
-SIFT_QUERY = os.path.join(SIFT_DIR, "sift_query.fvecs")
-SIFT_GT = os.path.join(SIFT_DIR, "sift_groundtruth.ivecs")
+K = 10
 
-WIKI_BASE = os.path.join(
-    PROJECT_ROOT,
-    "data",
-    "wiki_base_embeddings.npy",
-)
-WIKI_QUERY = os.path.join(
-    PROJECT_ROOT,
-    "data",
-    "wiki_query_embeddings.npy",
-)
-
-# --------------------------------------------------------------------------- #
-# Configuration
-# --------------------------------------------------------------------------- #
-
-N_TABLES = 20
-N_HASHES = 4
 RANDOM_SEED = 42
+
 BUILD_CHUNK_SIZE = 100_000
 
-# Optional candidate cap. None means all retrieved candidates are reranked.
-MAX_CANDIDATES = None
+MAX_QUERIES = None
 
-# Bucket width is the main LSH search-quality/speed parameter.
-# Values are kept dataset-specific because projection scales differ.
-BUCKET_WIDTH_SWEEP = {
-    "sift1m": [4.0, 8.0, 16.0, 32.0],
-    "wikipedia": [0.5, 1.0, 1.5, 2.0],
+
+# ==============================================================
+# MAIN SWITCH
+# ==============================================================
+
+# --------------------------------------------------------------
+# False = use only the standardised parameters
+#
+# True = run the full parameter sweep
+# --------------------------------------------------------------
+
+RUN_PARAMETER_SWEEP = False
+
+
+# ==============================================================
+# STANDARDISED SIFT1M PARAMETERS
+# ==============================================================
+
+# These are the parameters we found from the SIFT1M
+# calibration and experiments.
+
+STANDARD_SIFT_TABLES = 10
+
+STANDARD_SIFT_HASHES = 8
+
+STANDARD_SIFT_WIDTH = 744.6261
+
+
+# --------------------------------------------------------------
+# Additional standardised SIFT operating points.
+#
+# These are retained so that we can show the speed/recall
+# trade-off without performing the entire parameter sweep.
+# --------------------------------------------------------------
+
+SIFT_STANDARD_CONFIGS = {
+    "low": {
+        "num_tables": 10,
+        "num_hashes": 8,
+        "bucket_width": 496.4174,
+    },
+
+    "medium": {
+        "num_tables": 10,
+        "num_hashes": 8,
+        "bucket_width": 744.6261,
+    },
+
+    "high": {
+        "num_tables": 10,
+        "num_hashes": 8,
+        "bucket_width": 992.8348,
+    },
 }
 
-K_VALUES = [1, 10, 100]
-MAX_QUERIES = None  # Set to e.g. 100 for a quick test.
 
-RESULTS_FILE = os.path.join(
-    PROJECT_ROOT,
-    "results",
-    "lsh_results.json",
-)
+# ==============================================================
+# SIFT1M PARAMETER SWEEP
+# ==============================================================
 
+# --------------------------------------------------------------
+# These sweep values are based on the measured SIFT1M
+# projection scale:
+#
+# projection std ≈ 496.4174
+#
+# Width multipliers:
+#
+# 0.25 -> 124.1044
+# 0.50 -> 248.2087
+# 0.75 -> 372.3131
+# 1.00 -> 496.4174
+# 1.50 -> 744.6261
+# 2.00 -> 992.8348
+# 3.00 -> 1489.2523
+# --------------------------------------------------------------
+
+SIFT_PROJECTION_SCALE = 496.4174
+
+SIFT_WIDTH_MULTIPLIERS = [
+    0.25,
+    0.50,
+    0.75,
+    1.00,
+    1.50,
+    2.00,
+    3.00,
+]
+
+
+# Number of tables used in the table-count sweep.
+
+SIFT_TABLE_SWEEP = [
+    5,
+    10,
+    20,
+    40,
+]
+
+
+# Hashes/table used in the main width and table sweeps.
+
+SIFT_MAIN_HASHES = 8
+
+
+# Secondary hash-count sweep.
+
+SIFT_HASH_SWEEP_TABLES = [
+    10,
+    20,
+    40,
+]
+
+SIFT_HASHES_SWEEP = [
+    2,
+    4,
+    8,
+]
+
+
+# ==============================================================
+# WIKIPEDIA PARAMETERS
+# ==============================================================
+
+# Wikipedia embeddings are normalised, so their numerical
+# projection scale is completely different from raw SIFT1M.
+
+WIKI_STANDARD_CONFIGS = {
+    "low": {
+        "num_tables": 20,
+        "num_hashes": 4,
+        "bucket_width": 1.0,
+    },
+
+    "medium": {
+        "num_tables": 20,
+        "num_hashes": 4,
+        "bucket_width": 1.5,
+    },
+
+    "high": {
+        "num_tables": 40,
+        "num_hashes": 4,
+        "bucket_width": 2.0,
+    },
+}
+
+
+# Wikipedia parameter sweep.
+
+WIKI_TABLE_SWEEP = [
+    5,
+    10,
+    20,
+    40,
+]
+
+WIKI_WIDTH_SWEEP = [
+    0.5,
+    1.0,
+    1.5,
+    2.0,
+]
+
+WIKI_HASHES = 4
+
+
+# ==============================================================
+# RANDOM PROJECTION LSH
+# ==============================================================
 
 class RandomProjectionLSH:
-    """Random-projection LSH index for approximate nearest neighbours."""
+    """Random-projection LSH with multiple hash tables."""
 
     def __init__(
         self,
-        num_tables: int = N_TABLES,
-        num_hashes: int = N_HASHES,
-        bucket_width: float = 1.0,
+        num_tables: int = STANDARD_SIFT_TABLES,
+        num_hashes: int = STANDARD_SIFT_HASHES,
+        bucket_width: float = STANDARD_SIFT_WIDTH,
         random_seed: int = RANDOM_SEED,
-        max_candidates: int | None = MAX_CANDIDATES,
     ) -> None:
-        if num_tables <= 0:
-            raise ValueError("num_tables must be positive.")
-        if num_hashes <= 0:
-            raise ValueError("num_hashes must be positive.")
-        if bucket_width <= 0:
-            raise ValueError("bucket_width must be positive.")
 
-        self.num_tables = num_tables
-        self.num_hashes = num_hashes
-        self.bucket_width = bucket_width
-        self.random_seed = random_seed
-        self.max_candidates = max_candidates
+        if (
+            num_tables <= 0
+            or num_hashes <= 0
+            or bucket_width <= 0
+        ):
+            raise ValueError(
+                "LSH parameters must be positive."
+            )
 
-        self.dim: int | None = None
+        self.num_tables = int(num_tables)
+
+        self.num_hashes = int(num_hashes)
+
+        self.bucket_width = float(bucket_width)
+
+        self.random_seed = int(random_seed)
+
         self.vectors: np.ndarray | None = None
+
         self.vector_norms: np.ndarray | None = None
+
         self.projections: np.ndarray | None = None
+
         self.offsets: np.ndarray | None = None
 
         self.tables: List[
-            DefaultDict[Tuple[int, ...], List[int]]
+            DefaultDict[
+                Tuple[int, ...],
+                List[int]
+            ]
         ] = []
 
         self.last_candidate_count = 0
 
-    def build_index(self, vectors: np.ndarray) -> None:
-        """Build the random-projection hash tables."""
+
+    # ==========================================================
+    # BUILD INDEX
+    # ==========================================================
+
+    def build_index(
+        self,
+        vectors: np.ndarray
+    ) -> None:
 
         self.vectors = np.ascontiguousarray(
             vectors,
             dtype=np.float32,
         )
+
         self.vector_norms = np.sum(
             self.vectors * self.vectors,
             axis=1,
             dtype=np.float32,
         )
-        self.dim = self.vectors.shape[1]
 
-        rng = np.random.default_rng(self.random_seed)
+        dim = self.vectors.shape[1]
+
+        rng = np.random.default_rng(
+            self.random_seed
+        )
+
+        # ------------------------------------------------------
+        # Gaussian random projections
+        # ------------------------------------------------------
 
         self.projections = rng.normal(
             size=(
                 self.num_tables,
                 self.num_hashes,
-                self.dim,
+                dim,
             )
         ).astype(np.float32)
+
+        # ------------------------------------------------------
+        # Random offsets in [0, bucket_width)
+        # ------------------------------------------------------
 
         self.offsets = rng.uniform(
             0.0,
@@ -171,132 +388,189 @@ class RandomProjectionLSH:
             for _ in range(self.num_tables)
         ]
 
-        n_vectors = len(self.vectors)
+        # ------------------------------------------------------
+        # Build hash tables in chunks
+        # ------------------------------------------------------
 
         for start in range(
             0,
-            n_vectors,
+            len(self.vectors),
             BUILD_CHUNK_SIZE,
         ):
+
             end = min(
                 start + BUILD_CHUNK_SIZE,
-                n_vectors,
+                len(self.vectors),
             )
+
             chunk = self.vectors[start:end]
 
-            for table_id in range(self.num_tables):
-                projection = self.projections[table_id]
-                offset = self.offsets[table_id]
+            for t in range(
+                self.num_tables
+            ):
 
-                hash_values = np.floor(
+                hashes = np.floor(
                     (
-                        chunk @ projection.T
-                        + offset
+                        chunk
+                        @ self.projections[t].T
+                        + self.offsets[t]
                     )
                     / self.bucket_width
                 ).astype(np.int64)
 
-                table = self.tables[table_id]
+                table = self.tables[t]
 
-                for local_id, key_array in enumerate(hash_values):
-                    # Use the complete tuple as the dictionary key.
-                    key = tuple(int(x) for x in key_array)
-                    table[key].append(start + local_id)
+                for local_id, key_values in enumerate(
+                    hashes
+                ):
 
-    def _candidate_ids(
+                    key = tuple(
+                        int(v)
+                        for v in key_values
+                    )
+
+                    table[key].append(
+                        start + local_id
+                    )
+
+
+    # ==========================================================
+    # SEARCH
+    # ==========================================================
+
+    def search(
         self,
-        query_vector: np.ndarray,
-    ) -> Set[int]:
-        """Return the union of vectors in matching buckets."""
+        q: np.ndarray,
+        k: int = K,
+    ) -> List[int]:
 
-        if self.projections is None or self.offsets is None:
-            raise RuntimeError("Index has not been built.")
+        if (
+            self.vectors is None
+            or self.vector_norms is None
+        ):
+            raise RuntimeError(
+                "Index has not been built."
+            )
+
+        if (
+            self.projections is None
+            or self.offsets is None
+        ):
+            raise RuntimeError(
+                "LSH parameters have not been built."
+            )
 
         q = np.asarray(
-            query_vector,
+            q,
             dtype=np.float32,
         )
 
-        candidates: Set[int] = set()
+        bucket_arrays: List[np.ndarray] = []
 
-        for table_id in range(self.num_tables):
-            hash_values = np.floor(
+        # ------------------------------------------------------
+        # Retrieve matching buckets from every table
+        # ------------------------------------------------------
+
+        for t in range(
+            self.num_tables
+        ):
+
+            hashes = np.floor(
                 (
-                    self.projections[table_id] @ q
-                    + self.offsets[table_id]
+                    self.projections[t]
+                    @ q
+                    + self.offsets[t]
                 )
                 / self.bucket_width
             ).astype(np.int64)
 
-            key = tuple(int(x) for x in hash_values)
+            key = tuple(
+                int(v)
+                for v in hashes
+            )
 
-            candidates.update(
-                self.tables[table_id].get(
-                    key,
-                    [],
+            ids = self.tables[t].get(
+                key
+            )
+
+            if ids:
+                bucket_arrays.append(
+                    np.asarray(
+                        ids,
+                        dtype=np.int64,
+                    )
                 )
-            )
 
-        return candidates
+        # ------------------------------------------------------
+        # No candidates
+        # ------------------------------------------------------
 
-    def search(
-        self,
-        query_vector: np.ndarray,
-        k: int = 10,
-    ) -> List[int]:
-        """Return approximate k-nearest-neighbour ids."""
+        if not bucket_arrays:
 
-        if self.vectors is None or self.vector_norms is None:
-            raise RuntimeError("Index has not been built.")
+            self.last_candidate_count = 0
 
-        candidates = self._candidate_ids(query_vector)
-
-        if (
-            self.max_candidates is not None
-            and len(candidates) > self.max_candidates
-        ):
-            rng = np.random.default_rng(self.random_seed)
-
-            candidate_array = np.fromiter(
-                candidates,
-                dtype=np.int64,
-            )
-
-            candidates = set(
-                rng.choice(
-                    candidate_array,
-                    size=self.max_candidates,
-                    replace=False,
-                ).tolist()
-            )
-
-        self.last_candidate_count = len(candidates)
-
-        if not candidates:
             return []
 
-        candidate_ids = np.fromiter(
-            candidates,
-            dtype=np.int64,
+
+        # ------------------------------------------------------
+        # Union candidates from all tables
+        #
+        # np.unique is intentionally used here rather than a
+        # Python set because this is the standardised candidate
+        # union used by the project.
+        # ------------------------------------------------------
+
+        candidates = np.unique(
+            np.concatenate(
+                bucket_arrays
+            )
         )
 
-        q = np.asarray(
-            query_vector,
-            dtype=np.float32,
+        self.last_candidate_count = len(
+            candidates
         )
-        q_norm = np.dot(q, q)
 
-        candidate_vectors = self.vectors[candidate_ids]
-        candidate_norms = self.vector_norms[candidate_ids]
+
+        # ------------------------------------------------------
+        # Exact reranking
+        # ------------------------------------------------------
+
+        q_norm = np.dot(
+            q,
+            q,
+        )
+
+        candidate_vectors = (
+            self.vectors[candidates]
+        )
+
+        candidate_norms = (
+            self.vector_norms[candidates]
+        )
 
         distances = np.maximum(
             q_norm
             + candidate_norms
-            - 2.0 * np.dot(candidate_vectors, q),
+            - 2.0
+            * np.dot(
+                candidate_vectors,
+                q,
+            ),
             0.0,
         )
 
-        k = min(k, len(candidate_ids))
+
+        # ------------------------------------------------------
+        # Top-k
+        # ------------------------------------------------------
+
+        k = min(
+            k,
+            len(candidates),
+        )
+
+        if k <= 0:
+            return []
 
         selected = np.argpartition(
             distances,
@@ -304,329 +578,893 @@ class RandomProjectionLSH:
         )[:k]
 
         selected = selected[
-            np.argsort(distances[selected])
+            np.argsort(
+                distances[selected]
+            )
         ]
 
-        return candidate_ids[selected].tolist()
+        return candidates[
+            selected
+        ].tolist()
 
-    def estimated_array_memory_mb(self) -> float:
-        """Estimate memory used by the main NumPy index arrays."""
 
-        arrays = [
-            self.vectors,
-            self.vector_norms,
-            self.projections,
-            self.offsets,
-        ]
+    # ==========================================================
+    # SAVE
+    # ==========================================================
 
-        total_bytes = sum(
-            array.nbytes
-            for array in arrays
-            if array is not None
+    def save(
+        self,
+        path: str
+    ) -> None:
+
+        """Save the built index."""
+
+        if (
+            self.vectors is None
+            or self.projections is None
+            or self.offsets is None
+        ):
+            raise RuntimeError(
+                "Index has not been built."
+            )
+
+        keys = np.empty(
+            self.num_tables,
+            dtype=object,
         )
 
-        return total_bytes / (1024 ** 2)
+        values = np.empty(
+            self.num_tables,
+            dtype=object,
+        )
+
+        for t, table in enumerate(
+            self.tables
+        ):
+
+            keys[t] = np.asarray(
+                list(table.keys()),
+                dtype=object,
+            )
+
+            values[t] = np.asarray(
+                list(table.values()),
+                dtype=object,
+            )
+
+        with open(
+            path,
+            "wb",
+        ) as f:
+
+            np.savez(
+                f,
+                vectors=self.vectors,
+                vector_norms=self.vector_norms,
+                projections=self.projections,
+                offsets=self.offsets,
+                table_keys=keys,
+                table_values=values,
+            )
 
 
-# --------------------------------------------------------------------------- #
-# Benchmark helpers
-# --------------------------------------------------------------------------- #
+# ==============================================================
+# QUERY LIMIT
+# ==============================================================
 
-def _limit_queries(
-    queries: np.ndarray,
-    ground_truth: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray | None]:
+def _limit(
+    q: np.ndarray,
+    gt: np.ndarray | None = None
+):
+
     if MAX_QUERIES is None:
-        return queries, ground_truth
+        return q, gt
 
-    n = min(MAX_QUERIES, len(queries))
+    n = min(
+        MAX_QUERIES,
+        len(q),
+    )
 
-    if ground_truth is None:
-        return queries[:n], None
-
-    return queries[:n], ground_truth[:n]
-
-
-def _print_row(
-    dataset: str,
-    bucket_width: float,
-    metrics: Dict[str, float],
-) -> None:
-    print(
-        f"  {dataset:<10} | "
-        f"w={bucket_width:<6g} | "
-        f"R@1={metrics['recall_at_1']:.4f} | "
-        f"R@10={metrics['recall_at_10']:.4f} | "
-        f"R@100={metrics['recall_at_100']:.4f} | "
-        f"avg_query_time={metrics['avg_query_time_ms']:.3f} ms | "
-        f"QPS={metrics['qps']:.2f} | "
-        f"candidates={metrics['avg_candidates']:.0f} "
-        f"({metrics['candidate_pct']:.2f}%)"
+    return (
+        q[:n],
+        None if gt is None else gt[:n],
     )
 
 
-def benchmark_dataset(
+# ==============================================================
+# SINGLE CONFIGURATION BENCHMARK
+# ==============================================================
+
+def benchmark_configuration(
     dataset_name: str,
+    configuration_name: str,
     base: np.ndarray,
     queries: np.ndarray,
-    ground_truth_ids: np.ndarray,
-) -> Dict[str, Dict[str, float]]:
-    """Build LSH indexes and sweep bucket width."""
+    gt: np.ndarray,
+    num_tables: int,
+    num_hashes: int,
+    width: float,
+) -> Dict[str, float]:
 
-    widths = BUCKET_WIDTH_SWEEP[dataset_name]
+    print()
 
     print(
-        f"\n=== {dataset_name} "
-        f"(tables={N_TABLES}, hashes/table={N_HASHES}) ==="
+        f"=== {dataset_name} | "
+        f"{configuration_name} | "
+        f"tables={num_tables}, "
+        f"hashes/table={num_hashes}, "
+        f"width={width:.4f} ==="
     )
 
-    results: Dict[str, Dict[str, float]] = {}
 
-    for bucket_width in widths:
-        print(
-            f"\nBuilding LSH index: "
-            f"bucket_width={bucket_width}"
+    # ----------------------------------------------------------
+    # Build
+    # ----------------------------------------------------------
+
+    model = RandomProjectionLSH(
+        num_tables=num_tables,
+        num_hashes=num_hashes,
+        bucket_width=width,
+        random_seed=RANDOM_SEED,
+    )
+
+    start = time.perf_counter()
+
+    model.build_index(
+        base
+    )
+
+    build_time = (
+        time.perf_counter()
+        - start
+    )
+
+
+    # ----------------------------------------------------------
+    # Measure index size
+    # ----------------------------------------------------------
+
+    with tempfile.NamedTemporaryFile(
+        suffix=".npz",
+        delete=False,
+    ) as tmp:
+
+        tmp_path = tmp.name
+
+    try:
+
+        model.save(
+            tmp_path
         )
 
-        model = RandomProjectionLSH(
-            num_tables=N_TABLES,
-            num_hashes=N_HASHES,
-            bucket_width=bucket_width,
-            random_seed=RANDOM_SEED,
-            max_candidates=MAX_CANDIDATES,
+        index_size = measure_index_size(
+            tmp_path
         )
 
-        build_start = time.perf_counter()
-        model.build_index(base)
-        build_time_sec = time.perf_counter() - build_start
+    finally:
 
-        retrieved_ids: List[List[int]] = []
-        candidate_counts: List[int] = []
-
-        max_k = max(K_VALUES)
-
-        def timed_search(
-            query_vector: np.ndarray,
-        ) -> List[int]:
-            ids = model.search(
-                query_vector,
-                k=max_k,
+        if os.path.exists(
+            tmp_path
+        ):
+            os.remove(
+                tmp_path
             )
-            retrieved_ids.append(ids)
-            candidate_counts.append(
-                model.last_candidate_count
-            )
-            return ids
 
-        _, avg_query_time_sec = measure_query_time(
-            timed_search,
-            queries,
+
+    # ----------------------------------------------------------
+    # Search
+    # ----------------------------------------------------------
+
+    retrieved: List[List[int]] = []
+
+    candidates: List[int] = []
+
+
+    def timed_search(
+        q: np.ndarray
+    ) -> List[int]:
+
+        ids = model.search(
+            q,
+            K,
         )
 
-        recalls = {
-            k: compute_recall_at_k(
-                retrieved_ids,
-                ground_truth_ids,
-                k=k,
-            )
-            for k in K_VALUES
-        }
-
-        avg_candidates = (
-            float(np.mean(candidate_counts))
-            if candidate_counts
-            else 0.0
+        retrieved.append(
+            ids
         )
 
-        candidate_pct = (
-            100.0 * avg_candidates / len(base)
-            if len(base) > 0
-            else 0.0
+        candidates.append(
+            model.last_candidate_count
         )
 
-        metrics = {
-            "num_tables": float(N_TABLES),
-            "num_hashes": float(N_HASHES),
-            "bucket_width": float(bucket_width),
-            "build_time_sec": float(build_time_sec),
-            "avg_query_time_ms": float(
-                avg_query_time_sec * 1000
-            ),
-            "qps": float(
-                1.0 / avg_query_time_sec
-            ),
-            "recall_at_1": float(recalls[1]),
-            "recall_at_10": float(recalls[10]),
-            "recall_at_100": float(recalls[100]),
-            "avg_candidates": avg_candidates,
-            "candidate_pct": candidate_pct,
-            "index_array_memory_mb": float(
-                model.estimated_array_memory_mb()
-            ),
-        }
+        return ids
 
-        results[str(bucket_width)] = metrics
-        _print_row(dataset_name, bucket_width, metrics)
 
-        del model
-        gc.collect()
+    _, avg_sec = measure_query_time(
+        timed_search,
+        queries,
+    )
+
+
+    # ----------------------------------------------------------
+    # Recall
+    # ----------------------------------------------------------
+
+    recall = compute_recall_at_k(
+        retrieved,
+        gt,
+        k=K,
+    )
+
+
+    # ----------------------------------------------------------
+    # Candidate statistics
+    # ----------------------------------------------------------
+
+    avg_candidates = (
+        float(
+            np.mean(candidates)
+        )
+        if candidates
+        else 0.0
+    )
+
+    candidate_pct = (
+        100.0
+        * avg_candidates
+        / len(base)
+    )
+
+
+    # ----------------------------------------------------------
+    # QPS
+    # ----------------------------------------------------------
+
+    qps = (
+        1.0 / avg_sec
+        if avg_sec > 0
+        else 0.0
+    )
+
+
+    # ----------------------------------------------------------
+    # Metrics
+    # ----------------------------------------------------------
+
+    metrics = {
+
+        "configuration":
+            configuration_name,
+
+        "num_tables":
+            int(num_tables),
+
+        "num_hashes":
+            int(num_hashes),
+
+        "bucket_width":
+            float(width),
+
+        "recall_at_10":
+            float(recall),
+
+        "avg_query_time_ms":
+            float(
+                avg_sec * 1000
+            ),
+
+        "build_time_sec":
+            float(
+                build_time
+            ),
+
+        "index_size_mb":
+            float(
+                index_size
+            ),
+
+        "avg_candidates":
+            avg_candidates,
+
+        "candidate_pct":
+            float(
+                candidate_pct
+            ),
+
+        "qps":
+            float(
+                qps
+            ),
+    }
+
+
+    # ----------------------------------------------------------
+    # Print
+    # ----------------------------------------------------------
+
+    print(
+        f"  recall@10="
+        f"{recall:.4f}"
+        f" | avg_query_time="
+        f"{avg_sec * 1000:.3f} ms"
+        f" | build_time="
+        f"{build_time:.2f} s"
+        f" | index_size="
+        f"{index_size:.2f} MB"
+        f" | candidates="
+        f"{avg_candidates:.0f}"
+        f" ({candidate_pct:.2f}%)"
+    )
+
+
+    # ----------------------------------------------------------
+    # Cleanup
+    # ----------------------------------------------------------
+
+    del model
+    del retrieved
+    del candidates
+
+    gc.collect()
+
+
+    return metrics
+
+
+# ==============================================================
+# STANDARDISED BENCHMARK
+# ==============================================================
+
+def benchmark_standard_configs(
+    name: str,
+    base: np.ndarray,
+    queries: np.ndarray,
+    gt: np.ndarray,
+    configs: Dict[str, Dict[str, float]],
+) -> Dict[str, Dict[str, float]]:
+
+    results = {}
+
+
+    for config_name, config in configs.items():
+
+        metrics = benchmark_configuration(
+            dataset_name=name,
+            configuration_name=config_name,
+            base=base,
+            queries=queries,
+            gt=gt,
+            num_tables=int(
+                config["num_tables"]
+            ),
+            num_hashes=int(
+                config["num_hashes"]
+            ),
+            width=float(
+                config["bucket_width"]
+            ),
+        )
+
+        results[
+            config_name
+        ] = metrics
+
 
     return results
 
 
-# --------------------------------------------------------------------------- #
-# Dataset runners -- same datasets as Annoy
-# --------------------------------------------------------------------------- #
+# ==============================================================
+# SIFT PARAMETER SWEEP
+# ==============================================================
 
-def run_sift() -> Dict[str, Dict[str, float]]:
-    """Benchmark LSH on the repository's SIFT1M dataset."""
+def run_sift_parameter_sweep(
+    base: np.ndarray,
+    query: np.ndarray,
+    gt: np.ndarray,
+) -> Dict[str, Dict[str, float]]:
 
-    base = load_fvecs(SIFT_BASE)
-    queries = load_fvecs(SIFT_QUERY)
-    ground_truth = load_ivecs(SIFT_GT)
+    print()
+    print("=" * 70)
+    print("SIFT1M PARAMETER SWEEP")
+    print("=" * 70)
 
-    queries, ground_truth = _limit_queries(
-        queries,
-        ground_truth,
+    results = {}
+
+
+    # ----------------------------------------------------------
+    # Stage 1:
+    # Width sweep
+    #
+    # 10 tables × 8 hashes
+    # ----------------------------------------------------------
+
+    print()
+    print(
+        "Stage 1: bucket-width sweep"
     )
 
-    if base.shape[1] != queries.shape[1]:
-        raise ValueError(
-            "SIFT base/query dimensions do not match."
+    widths = [
+        SIFT_PROJECTION_SCALE * multiplier
+        for multiplier in SIFT_WIDTH_MULTIPLIERS
+    ]
+
+
+    for width in widths:
+
+        multiplier = (
+            width
+            / SIFT_PROJECTION_SCALE
         )
 
-    if len(queries) != len(ground_truth):
-        raise ValueError(
-            "SIFT query/ground-truth counts do not match."
+        name = (
+            f"width_{multiplier:.2f}x"
         )
+
+        results[name] = benchmark_configuration(
+            dataset_name="sift1m",
+            configuration_name=name,
+            base=base,
+            queries=query,
+            gt=gt,
+            num_tables=10,
+            num_hashes=8,
+            width=width,
+        )
+
+
+    # ----------------------------------------------------------
+    # Stage 2:
+    # Table-count sweep
+    #
+    # Use the medium width.
+    # ----------------------------------------------------------
+
+    print()
+    print(
+        "Stage 2: table-count sweep"
+    )
+
+    medium_width = (
+        SIFT_PROJECTION_SCALE
+        * 1.50
+    )
+
+
+    for num_tables in SIFT_TABLE_SWEEP:
+
+        name = (
+            f"tables_{num_tables}"
+        )
+
+        results[name] = benchmark_configuration(
+            dataset_name="sift1m",
+            configuration_name=name,
+            base=base,
+            queries=query,
+            gt=gt,
+            num_tables=num_tables,
+            num_hashes=SIFT_MAIN_HASHES,
+            width=medium_width,
+        )
+
+
+    # ----------------------------------------------------------
+    # Stage 3:
+    # Hash-count sweep
+    #
+    # Use medium width.
+    # ----------------------------------------------------------
+
+    print()
+    print(
+        "Stage 3: hashes-per-table sweep"
+    )
+
+
+    for num_tables in SIFT_HASH_SWEEP_TABLES:
+
+        for num_hashes in SIFT_HASHES_SWEEP:
+
+            name = (
+                f"tables_{num_tables}"
+                f"_hashes_{num_hashes}"
+            )
+
+            results[name] = benchmark_configuration(
+                dataset_name="sift1m",
+                configuration_name=name,
+                base=base,
+                queries=query,
+                gt=gt,
+                num_tables=num_tables,
+                num_hashes=num_hashes,
+                width=medium_width,
+            )
+
+
+    return results
+
+
+# ==============================================================
+# WIKIPEDIA PARAMETER SWEEP
+# ==============================================================
+
+def run_wikipedia_parameter_sweep(
+    base: np.ndarray,
+    query: np.ndarray,
+    gt: np.ndarray,
+) -> Dict[str, Dict[str, float]]:
+
+    print()
+    print("=" * 70)
+    print("WIKIPEDIA PARAMETER SWEEP")
+    print("=" * 70)
+
+    results = {}
+
+
+    for num_tables in WIKI_TABLE_SWEEP:
+
+        for width in WIKI_WIDTH_SWEEP:
+
+            name = (
+                f"tables_{num_tables}"
+                f"_width_{width:g}"
+            )
+
+            results[name] = benchmark_configuration(
+                dataset_name="wikipedia",
+                configuration_name=name,
+                base=base,
+                queries=query,
+                gt=gt,
+                num_tables=num_tables,
+                num_hashes=WIKI_HASHES,
+                width=width,
+            )
+
+
+    return results
+
+
+# ==============================================================
+# SIFT1M
+# ==============================================================
+
+def run_sift():
+
+    print()
+    print("=" * 70)
+    print("SIFT1M - RANDOM PROJECTION LSH")
+    print("=" * 70)
+
+
+    d = os.path.join(
+        PROJECT_ROOT,
+        "data",
+        "sift",
+    )
+
+
+    # ----------------------------------------------------------
+    # Load
+    # ----------------------------------------------------------
+
+    base = load_fvecs(
+        os.path.join(
+            d,
+            "sift_base.fvecs",
+        )
+    )
+
+    query = load_fvecs(
+        os.path.join(
+            d,
+            "sift_query.fvecs",
+        )
+    )
+
+    gt = load_ivecs(
+        os.path.join(
+            d,
+            "sift_groundtruth.ivecs",
+        )
+    )[:, :K]
+
+
+    query, gt = _limit(
+        query,
+        gt,
+    )
+
 
     print(
-        f"SIFT1M: base={base.shape}, "
-        f"queries={queries.shape}, "
-        f"ground_truth={ground_truth.shape}"
+        f"Base shape       : {base.shape}"
     )
 
-    return benchmark_dataset(
-        "sift1m",
-        base,
-        queries,
-        ground_truth,
+    print(
+        f"Query shape      : {query.shape}"
+    )
+
+    print(
+        f"Ground truth     : {gt.shape}"
     )
 
 
-def run_wikipedia() -> Dict[str, Dict[str, float]]:
-    """Benchmark LSH on the repository's Wikipedia embeddings.
+    # ----------------------------------------------------------
+    # Parameter sweep
+    # ----------------------------------------------------------
 
-    This follows Annoy exactly at the dataset level:
-    wiki_base_embeddings.npy and wiki_query_embeddings.npy are loaded,
-    then both are L2-normalised for cosine/angular nearest-neighbour search.
-    Ground truth is generated exactly because no Wikipedia GT file is
-    supplied in the repository.
-    """
+    if RUN_PARAMETER_SWEEP:
 
-    base = np.load(WIKI_BASE)
-    queries = np.load(WIKI_QUERY)
-
-    if base.ndim != 2 or queries.ndim != 2:
-        raise ValueError(
-            "Wikipedia embeddings must be 2-D arrays."
+        print()
+        print(
+            "PARAMETER SWEEP ENABLED"
         )
 
-    if base.shape[1] != queries.shape[1]:
-        raise ValueError(
-            "Wikipedia base/query dimensions do not match."
-        )
+        return {
+            "mode": "parameter_sweep",
+            "results":
+                run_sift_parameter_sweep(
+                    base,
+                    query,
+                    gt,
+                ),
+        }
 
-    base_norms = np.linalg.norm(
+
+    # ----------------------------------------------------------
+    # Standardised configurations
+    # ----------------------------------------------------------
+
+    print()
+    print(
+        "PARAMETER SWEEP DISABLED"
+    )
+
+    print(
+        "Running standardised LSH configurations."
+    )
+
+
+    return {
+        "mode": "standard",
+        "results":
+            benchmark_standard_configs(
+                name="sift1m",
+                base=base,
+                queries=query,
+                gt=gt,
+                configs=SIFT_STANDARD_CONFIGS,
+            ),
+    }
+
+
+# ==============================================================
+# WIKIPEDIA
+# ==============================================================
+
+def run_wikipedia():
+
+    print()
+    print("=" * 70)
+    print("WIKIPEDIA - RANDOM PROJECTION LSH")
+    print("=" * 70)
+
+
+    base = np.load(
+        os.path.join(
+            PROJECT_ROOT,
+            "data",
+            "wiki_base_embeddings.npy",
+        )
+    )
+
+    query = np.load(
+        os.path.join(
+            PROJECT_ROOT,
+            "data",
+            "wiki_query_embeddings.npy",
+        )
+    )
+
+
+    # ----------------------------------------------------------
+    # Explicit L2 normalisation
+    # ----------------------------------------------------------
+
+    base_norm = np.linalg.norm(
         base,
         axis=1,
         keepdims=True,
     )
-    query_norms = np.linalg.norm(
-        queries,
+
+    query_norm = np.linalg.norm(
+        query,
         axis=1,
         keepdims=True,
     )
 
-    if np.any(base_norms == 0) or np.any(query_norms == 0):
+
+    if np.any(base_norm == 0):
         raise ValueError(
-            "Wikipedia embeddings contain zero vectors and cannot be "
-            "L2-normalised."
+            "Wikipedia base embeddings contain zero vectors."
         )
 
-    # Same normalisation used by Annoy's Wikipedia benchmark.
-    base = base / base_norms
-    queries = queries / query_norms
+    if np.any(query_norm == 0):
+        raise ValueError(
+            "Wikipedia query embeddings contain zero vectors."
+        )
 
-    queries, _ = _limit_queries(queries)
 
-    ground_truth = load_ground_truth(
-        queries,
-        base,
-        k=max(K_VALUES),
+    base = (
+        base / base_norm
+    ).astype(
+        np.float32
+    )
+
+    query = (
+        query / query_norm
+    ).astype(
+        np.float32
+    )
+
+
+    query, _ = _limit(
+        query
+    )
+
+
+    print(
+        f"Base shape       : {base.shape}"
     )
 
     print(
-        f"Wikipedia: base={base.shape}, "
-        f"queries={queries.shape}, "
-        f"ground_truth={ground_truth.shape}"
+        f"Query shape      : {query.shape}"
     )
 
-    return benchmark_dataset(
-        "wikipedia",
+
+    # ----------------------------------------------------------
+    # Ground truth
+    # ----------------------------------------------------------
+
+    gt = load_ground_truth(
+        query,
         base,
-        queries,
-        ground_truth,
+        k=K,
     )
 
 
-# --------------------------------------------------------------------------- #
-# Main
-# --------------------------------------------------------------------------- #
+    # ----------------------------------------------------------
+    # Parameter sweep
+    # ----------------------------------------------------------
+
+    if RUN_PARAMETER_SWEEP:
+
+        print()
+        print(
+            "PARAMETER SWEEP ENABLED"
+        )
+
+        return {
+            "mode": "parameter_sweep",
+            "results":
+                run_wikipedia_parameter_sweep(
+                    base,
+                    query,
+                    gt,
+                ),
+        }
+
+
+    # ----------------------------------------------------------
+    # Standardised configurations
+    # ----------------------------------------------------------
+
+    print()
+    print(
+        "PARAMETER SWEEP DISABLED"
+    )
+
+    print(
+        "Running standardised LSH configurations."
+    )
+
+
+    return {
+        "mode": "standard",
+        "results":
+            benchmark_standard_configs(
+                name="wikipedia",
+                base=base,
+                queries=query,
+                gt=gt,
+                configs=WIKI_STANDARD_CONFIGS,
+            ),
+    }
+
+
+# ==============================================================
+# MAIN
+# ==============================================================
 
 def main() -> None:
-    print("=" * 80)
-    print("RANDOM PROJECTION LSH")
-    print("=" * 80)
-    print(f"Project root: {PROJECT_ROOT}")
-    print(f"SIFT base:    {SIFT_BASE}")
-    print(f"SIFT query:   {SIFT_QUERY}")
-    print(f"SIFT GT:      {SIFT_GT}")
-    print(f"Wiki base:    {WIKI_BASE}")
-    print(f"Wiki query:   {WIKI_QUERY}")
 
-    all_results = {
+    print()
+    print("=" * 70)
+    print(
+        "SC4020 ANN SEARCH"
+    )
+    print(
+        "RANDOM PROJECTION LSH"
+    )
+    print("=" * 70)
+
+    print()
+
+    print(
+        "Parameter sweep:",
+        "ON" if RUN_PARAMETER_SWEEP else "OFF",
+    )
+
+
+    # ----------------------------------------------------------
+    # Run datasets
+    # ----------------------------------------------------------
+
+    results = {
         "sift1m": run_sift(),
         "wikipedia": run_wikipedia(),
     }
 
+
+    # ----------------------------------------------------------
+    # Save results
+    # ----------------------------------------------------------
+
+    path = os.path.join(
+        PROJECT_ROOT,
+        "results",
+        "lsh_results.json",
+    )
+
+
     os.makedirs(
-        os.path.dirname(RESULTS_FILE),
+        os.path.dirname(path),
         exist_ok=True,
     )
 
+
     with open(
-        RESULTS_FILE,
+        path,
         "w",
         encoding="utf-8",
     ) as f:
+
         json.dump(
-            all_results,
+            results,
             f,
             indent=2,
         )
 
-    print(f"\nSaved results to {RESULTS_FILE}")
 
-    print("\n=== Final summary ===")
-    for dataset_name, per_width in all_results.items():
-        for width_str, metrics in per_width.items():
-            _print_row(
-                dataset_name,
-                float(width_str),
-                metrics,
-            )
+    print()
+    print("=" * 70)
 
+    print(
+        "Saved results to:"
+    )
+
+    print(
+        path
+    )
+
+    print("=" * 70)
+
+
+# ==============================================================
+# ENTRY POINT
+# ==============================================================
 
 if __name__ == "__main__":
     main()
