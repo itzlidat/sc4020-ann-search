@@ -17,7 +17,6 @@ Output (shared schema, same as Annoy/HNSW), one file per method:
 
 import argparse
 import json
-import os
 import sys
 import tempfile
 import time
@@ -45,15 +44,18 @@ from methods.ivf_pq import IVFPQ  # noqa: E402
 from data.fvecs_loader import load_fvecs, load_ivecs  # noqa: E402
 
 # =================================================
-# Paths (edit here, or set env vars; no INSERT_PATH)
+# Project paths
 # =================================================
 
-DATA_DIR = PROJECT_ROOT / "data"
-SIFT_DIR = Path(os.environ.get("SIFT_DIR", DATA_DIR / "sift"))
-WIKI_DIR = Path(os.environ.get("WIKI_DIR", DATA_DIR / "wiki"))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 RESULTS_DIR = PROJECT_ROOT / "results"
-RESULTS_DIR.mkdir(exist_ok=True)
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Dataset directories are assigned from command-line
+# arguments in main().
+SIFT_DIR = None
+WIKI_DIR = None
 
 # Dataset keys must match what Annoy/HNSW use so the combined plot works.
 SIFT_KEY = "sift1m"
@@ -219,19 +221,73 @@ def run_dataset(base, train, queries, gt, cfg):
 
 
 def load_sift():
+    """Load SIFT1M from the directory supplied by the user."""
+
+    required_files = [
+        "sift_base.fvecs",
+        "sift_query.fvecs",
+        "sift_learn.fvecs",
+        "sift_groundtruth.ivecs",
+    ]
+
+    for filename in required_files:
+        path = SIFT_DIR / filename
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"\nCould not find:\n"
+                f"    {path}\n\n"
+                f"Please check that --sift-dir points to "
+                f"your SIFT1M folder."
+            )
+
     base = load_fvecs(SIFT_DIR / "sift_base.fvecs")
     queries = load_fvecs(SIFT_DIR / "sift_query.fvecs")
     train = load_fvecs(SIFT_DIR / "sift_learn.fvecs")
-    gt = load_ivecs(SIFT_DIR / "sift_groundtruth.ivecs")[:, :K]
+    gt = load_ivecs(
+        SIFT_DIR / "sift_groundtruth.ivecs"
+    )[:, :K]
+
     return base, train, queries, gt
 
 
 def load_wiki():
-    f32 = lambda name: np.load(WIKI_DIR / name).astype(np.float32)
-    base = normalize_vectors(f32("wiki_base_embeddings.npy"))
-    queries = normalize_vectors(f32("wiki_query_embeddings.npy"))
-    train = normalize_vectors(f32("wiki_train_embeddings.npy"))
+    """Load Wikipedia embeddings from the directory supplied by the user."""
+
+    required_files = [
+        "wiki_base_embeddings.npy",
+        "wiki_query_embeddings.npy",
+        "wiki_train_embeddings.npy",
+    ]
+
+    for filename in required_files:
+        path = WIKI_DIR / filename
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"\nCould not find:\n"
+                f"    {path}\n\n"
+                f"Please check that --wiki-dir points to "
+                f"your Wikipedia dataset folder."
+            )
+
+    def f32(name):
+        return np.load(WIKI_DIR / name).astype(np.float32)
+
+    base = normalize_vectors(
+        f32("wiki_base_embeddings.npy")
+    )
+
+    queries = normalize_vectors(
+        f32("wiki_query_embeddings.npy")
+    )
+
+    train = normalize_vectors(
+        f32("wiki_train_embeddings.npy")
+    )
+
     gt = wiki_ground_truth(base, queries)
+
     return base, train, queries, gt
 
 
@@ -281,24 +337,93 @@ def plot_tradeoff(results):
 # =================================================
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--datasets", nargs="+", default=["sift", "wiki"],
-                    choices=["sift", "wiki"])
+
+    ap = argparse.ArgumentParser(
+        description="Benchmark PQ, IVF and IVF+PQ."
+    )
+
+    ap.add_argument(
+        "--datasets",
+        nargs="+",
+        default=["sift", "wiki"],
+        choices=["sift", "wiki"],
+        help="Datasets to benchmark.",
+    )
+
+    ap.add_argument(
+        "--sift-dir",
+        type=Path,
+        default=PROJECT_ROOT / "data" / "sift",
+        help=(
+            "Folder containing the SIFT1M files. "
+            "Default: data/sift"
+        ),
+    )
+
+    ap.add_argument(
+        "--wiki-dir",
+        type=Path,
+        default=PROJECT_ROOT / "data" / "wiki",
+        help=(
+            "Folder containing the Wikipedia embedding files. "
+            "Default: data/wiki"
+        ),
+    )
+
     args = ap.parse_args()
 
+    # Make dataset directories available to the
+    # loading functions.
+    SIFT_DIR = args.sift_dir.expanduser().resolve()
+    WIKI_DIR = args.wiki_dir.expanduser().resolve()
+
     results = {}
+
     if "sift" in args.datasets:
+
         print("\n===== SIFT1M =====")
+        print("Loading from:", SIFT_DIR)
+
         base, train, queries, gt = load_sift()
-        print(base.shape, train.shape, queries.shape, gt.shape)
-        results[SIFT_KEY] = run_dataset(base, train, queries, gt, SIFT_CFG)
+
+        print(
+            base.shape,
+            train.shape,
+            queries.shape,
+            gt.shape,
+        )
+
+        results[SIFT_KEY] = run_dataset(
+            base,
+            train,
+            queries,
+            gt,
+            SIFT_CFG,
+        )
 
     if "wiki" in args.datasets:
+
         print("\n===== Wikipedia =====")
+        print("Loading from:", WIKI_DIR)
+
         base, train, queries, gt = load_wiki()
-        print(base.shape, train.shape, queries.shape, gt.shape)
-        results[WIKI_KEY] = run_dataset(base, train, queries, gt, WIKI_CFG)
+
+        print(
+            base.shape,
+            train.shape,
+            queries.shape,
+            gt.shape,
+        )
+
+        results[WIKI_KEY] = run_dataset(
+            base,
+            train,
+            queries,
+            gt,
+            WIKI_CFG,
+        )
 
     save_results(results)
     plot_tradeoff(results)
+
     print("\nDone.")
