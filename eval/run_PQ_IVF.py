@@ -1,607 +1,279 @@
 """
-Benchmark PQ (ADC and SDC), IVF, and IVF+PQ
-on SIFT1M and Wikipedia embeddings.
+Benchmark PQ (ADC and SDC), IVF and IVF+PQ on SIFT1M and Wikipedia.
 
-Metrics:
-- Recall@10
-- Average query latency (ms)
-- Index size (MB)
+Run from the repo root:
+    python -m eval.run_pq_ivf                 # both datasets
+    python -m eval.run_pq_ivf --datasets sift # one dataset
 
-PQ distance calculations:
-- ADC: Asymmetric Distance Calculation
-- SDC: Symmetric Distance Calculation
+Metrics: recall@10, average query latency (ms), index size (MB), build time (s).
 
-Results are saved to:
-results/pq_ivf_results.json
+Output (shared schema, same as Annoy/HNSW), one file per method:
+    results/pq_results.json
+    results/ivf_results.json
+    results/ivf_pq_results.json
+    {"sift1m": {"<param>": {recall_at_10, avg_query_time_ms,
+                            build_time_sec, index_size_mb, ...}}}
 """
 
-from pathlib import Path
+import argparse
 import json
+import os
+import sys
 import tempfile
-import matplotlib.pyplot as plt
+import time
+from pathlib import Path
 
 import numpy as np
 
-from harness import (
+import matplotlib
+matplotlib.use("Agg")  # no blocking plt.show(); we save PNGs instead
+import matplotlib.pyplot as plt
+
+# Make `methods`, `eval`, `data` importable even if run as a plain script.
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from eval.harness import (  # noqa: E402
     compute_recall_at_k,
     measure_query_time,
     measure_index_size,
 )
-
-from PQ import PQ
-from IVF import IVF
-from PQ_IVF import IVFPQ
-
-from fvecs_loader import load_fvecs, load_ivecs
-
+from methods.pq import PQ  # noqa: E402
+from methods.ivf import IVF  # noqa: E402
+from methods.ivf_pq import IVFPQ  # noqa: E402
+from data.fvecs_loader import load_fvecs, load_ivecs  # noqa: E402
 
 # =================================================
-# Dataset paths
+# Paths (edit here, or set env vars; no INSERT_PATH)
 # =================================================
 
-# IMPORTANT:
-# The SIFT1M and Wikipedia datasets are NOT stored in this GitHub repo
-# because the files are too large.
-#
-# Before running this script, replace the two paths below with the
-# locations where you downloaded/saved the datasets on your computer.
+DATA_DIR = PROJECT_ROOT / "data"
+SIFT_DIR = Path(os.environ.get("SIFT_DIR", DATA_DIR / "sift"))
+WIKI_DIR = Path(os.environ.get("WIKI_DIR", DATA_DIR / "wiki"))
 
-
-# Example:
-# SIFT_DIR = Path("/Users/yourname/Downloads/sift")
-SIFT_DIR = Path(
-    "INSERT_PATH"
-)
-
-
-# Example:
-# WIKI_DIR = Path("/Users/yourname/Downloads/wiki data")
-WIKI_DIR = Path(
-    "INSERT_PATH"
-)
-
-# =================================================
-# Project paths
-# =================================================
-
-# Automatically locate the GitHub repository root.
-# Assumes this file is:
-# sc4020-ann-search/eval/run_pq_ivf.py
-
-PROJECT_ROOT = Path.cwd()
-
-# Results produced by this script will still be saved
-# inside the GitHub project's results/ folder.
 RESULTS_DIR = PROJECT_ROOT / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
-OUTPUT_PATH = RESULTS_DIR / "pq_ivf_results.json"
+# Dataset keys must match what Annoy/HNSW use so the combined plot works.
+SIFT_KEY = "sift1m"
+WIKI_KEY = "wiki"  # <- change if the Annoy/HNSW files use another name
+
+K = 10
+
+# Sweeps
+NPROBES = [1, 2, 4, 8, 16, 32, 64, 128]
+SIFT_CFG = {"nlist": 1024, "pq_ms": [8, 16, 32]}       # d = 128
+WIKI_CFG = {"nlist": 512, "pq_ms": [8, 16, 48, 96]}    # d = 384 (m must divide d)
+NBITS = 8
 
 
 # =================================================
-# Helper functions
+# Helpers
 # =================================================
 
-def normalize_vectors(vectors):
-    """L2-normalize vectors for cosine similarity."""
-    vectors = np.asarray(vectors, dtype=np.float32)
-
-    norms = np.linalg.norm(
-        vectors,
-        axis=1,
-        keepdims=True,
-    )
-
-    norms = np.maximum(norms, 1e-12)
-
-    return vectors / norms
+def normalize_vectors(x):
+    x = np.asarray(x, dtype=np.float32)
+    norms = np.maximum(np.linalg.norm(x, axis=1, keepdims=True), 1e-12)
+    return x / norms
 
 
 def get_index_size(model):
-    """Save index temporarily and measure its size."""
-    with tempfile.NamedTemporaryFile(
-        suffix=".index",
-        delete=False,
-    ) as tmp:
-        temp_path = tmp.name
-
+    """Save index to a temp file and measure it."""
+    with tempfile.NamedTemporaryFile(suffix=".index", delete=False) as tmp:
+        path = tmp.name
     try:
-        model.save(temp_path)
-        size_mb = measure_index_size(temp_path)
-
+        model.save(path)
+        return float(measure_index_size(path))
     finally:
-        Path(temp_path).unlink(missing_ok=True)
-
-    return size_mb
+        Path(path).unlink(missing_ok=True)
 
 
-def benchmark_method(
-    name,
-    model,
-    base,
-    train,
-    queries,
-    ground_truth,
-    k=10,
-    search_type="default",
-):
-    """Build and evaluate one ANN method."""
+def set_nprobe(model, nprobe):
+    """Change nprobe on an already-built index (no rebuild)."""
+    done = False
+    if hasattr(model, "nprobe"):
+        model.nprobe = nprobe
+        done = True
+    inner = getattr(model, "index", None)
+    if inner is not None and hasattr(inner, "nprobe"):
+        inner.nprobe = nprobe
+        done = True
+    if not done:
+        raise AttributeError(
+            "Could not find nprobe on the model. Expose `nprobe` or "
+            "`index.nprobe` in methods/ivf.py and methods/ivf_pq.py."
+        )
 
-    print(f"\n========== {name} ==========")
-    print("Building index...")
 
-    model.build_index(
-        base,
-        train_vectors=train,
-    )
+def build(model, base, train):
+    t0 = time.perf_counter()
+    model.build_index(base, train_vectors=train)
+    return time.perf_counter() - t0
 
-    print("Index built.")
 
+def evaluate(search_fn, queries, ground_truth, k=K):
+    """Return (recall@k, avg query ms)."""
     retrieved = []
 
-    def timed_search(query):
-
-        # PQ symmetric distance calculation
-        if search_type == "symmetric":
-            ids = model.search_symmetric(
-                query,
-                k=k,
-            )
-
-        # Normal search:
-        # - PQ asymmetric
-        # - IVF
-        # - IVF+PQ
-        else:
-            ids = model.search(
-                query,
-                k=k,
-            )
-
+    def timed_search(q):
+        ids = search_fn(q, k=k)
         retrieved.append(ids)
-
         return ids
 
-    # Query latency
-    _, avg_time_sec = measure_query_time(
-        timed_search,
-        queries,
-    )
+    _, avg_sec = measure_query_time(timed_search, queries)
 
-    # Recall
-    recall = compute_recall_at_k(
-        retrieved,
-        ground_truth,
-        k=k,
-    )
+    # If the harness does warm-up calls, keep only the real pass.
+    retrieved = retrieved[-len(queries):]
 
-    # Index size
-    index_size_mb = get_index_size(model)
+    recall = compute_recall_at_k(retrieved, ground_truth, k=k)
+    return float(recall), float(avg_sec * 1000)
 
-    result = {
-        "recall_at_10": float(recall),
-        "avg_query_time_ms": float(
-            avg_time_sec * 1000
-        ),
-        "index_size_mb": float(
-            index_size_mb
-        ),
+
+def entry(recall, ms, build_sec, size_mb, **params):
+    return {
+        "recall_at_10": recall,
+        "avg_query_time_ms": ms,
+        "build_time_sec": float(build_sec),
+        "index_size_mb": float(size_mb),
+        **params,
     }
 
-    print(
-        f"{name} recall@10:       "
-        f"{result['recall_at_10']:.4f}"
-    )
 
-    print(
-        f"{name} avg query time:  "
-        f"{result['avg_query_time_ms']:.4f} ms"
-    )
-
-    print(
-        f"{name} index size:      "
-        f"{result['index_size_mb']:.4f} MB"
-    )
-
-    return result
-
-
-
-def plot_results(all_results):
-    """Plot benchmark results for SIFT1M and Wikipedia."""
-
-    methods = ["PQ-ADC", "PQ-SDC", "IVF", "IVF+PQ"]
-    labels = ["PQ\nADC", "PQ\nSDC", "IVF", "IVF+PQ"]
-
-    x = np.arange(len(methods))
-    width = 0.35
-
-    # =================================================
-    # Recall@10
-    # =================================================
-
-    sift_recall = [
-        all_results["SIFT1M"][method]["recall_at_10"]
-        for method in methods
-    ]
-
-    wiki_recall = [
-        all_results["Wikipedia"][method]["recall_at_10"]
-        for method in methods
-    ]
-
-    plt.figure(figsize=(8, 5))
-
-    plt.bar(
-        x - width / 2,
-        sift_recall,
-        width,
-        label="SIFT1M",
-    )
-
-    plt.bar(
-        x + width / 2,
-        wiki_recall,
-        width,
-        label="Wikipedia",
-    )
-
-    plt.xlabel("Method")
-    plt.ylabel("Recall@10")
-    plt.title("Recall@10 Comparison")
-    plt.xticks(x, labels)
-    plt.ylim(0, 1)
-    plt.legend()
-    plt.tight_layout()
-
-    recall_path = RESULTS_DIR / "recall_at_10.png"
-    plt.savefig(recall_path, dpi=300)
-    plt.show()
-
-    # =================================================
-    # Average query latency
-    # =================================================
-
-    sift_latency = [
-        all_results["SIFT1M"][method]["avg_query_time_ms"]
-        for method in methods
-    ]
-
-    wiki_latency = [
-        all_results["Wikipedia"][method]["avg_query_time_ms"]
-        for method in methods
-    ]
-
-    plt.figure(figsize=(8, 5))
-
-    plt.bar(
-        x - width / 2,
-        sift_latency,
-        width,
-        label="SIFT1M",
-    )
-
-    plt.bar(
-        x + width / 2,
-        wiki_latency,
-        width,
-        label="Wikipedia",
-    )
-
-    plt.xlabel("Method")
-    plt.ylabel("Average Query Time (ms)")
-    plt.title("Average Query Latency Comparison")
-    plt.xticks(x, labels)
-    plt.legend()
-    plt.tight_layout()
-
-    latency_path = RESULTS_DIR / "query_latency.png"
-    plt.savefig(latency_path, dpi=300)
-    plt.show()
-
-    # =================================================
-    # Index size
-    # =================================================
-
-    sift_size = [
-        all_results["SIFT1M"][method]["index_size_mb"]
-        for method in methods
-    ]
-
-    wiki_size = [
-        all_results["Wikipedia"][method]["index_size_mb"]
-        for method in methods
-    ]
-
-    plt.figure(figsize=(8, 5))
-
-    plt.bar(
-        x - width / 2,
-        sift_size,
-        width,
-        label="SIFT1M",
-    )
-
-    plt.bar(
-        x + width / 2,
-        wiki_size,
-        width,
-        label="Wikipedia",
-    )
-
-    plt.xlabel("Method")
-    plt.ylabel("Index Size (MB)")
-    plt.title("Index Size Comparison")
-    plt.xticks(x, labels)
-    plt.legend()
-    plt.tight_layout()
-
-    size_path = RESULTS_DIR / "index_size.png"
-    plt.savefig(size_path, dpi=300)
-    plt.show()
+def wiki_ground_truth(base, queries, k=K):
+    """Exact L2 top-k on normalised vectors (same as cosine ranking).
+    Cached on disk. If eval.harness has load_ground_truth, prefer that so
+    everyone shares one ground truth."""
+    cache = WIKI_DIR / "wiki_groundtruth_l2norm.npy"
+    if cache.exists():
+        return np.load(cache)[:, :k]
+    import faiss
+    index = faiss.IndexFlatL2(base.shape[1])
+    index.add(base)
+    _, gt = index.search(queries, k)
+    np.save(cache, gt)
+    return gt
 
 
 # =================================================
-# SIFT1M
+# Per-dataset benchmark
 # =================================================
 
-def run_sift():
-    print("\n\n==============================")
-    print("SIFT1M BENCHMARK")
-    print("==============================")
+def run_dataset(base, train, queries, gt, cfg):
+    d = base.shape[1]
+    out = {"PQ": {}, "IVF": {}, "IVF+PQ": {}}
+    nlist = cfg["nlist"]
 
-    base = load_fvecs(
-        SIFT_DIR / "sift_base.fvecs"
-    )
+    # ---- PQ: build once per m, evaluate ADC and SDC on same index ----
+    for m in cfg["pq_ms"]:
+        if d % m != 0:
+            print(f"skip PQ m={m}: d={d} not divisible")
+            continue
+        print(f"\n[PQ] m={m}")
+        model = PQ(m=m, nbits=NBITS)
+        b = build(model, base, train)
+        size = get_index_size(model)
 
-    queries = load_fvecs(
-        SIFT_DIR / "sift_query.fvecs"
-    )
+        r, ms = evaluate(model.search, queries, gt)
+        out["PQ"][f"m{m}_nbits{NBITS}_adc"] = entry(
+            r, ms, b, size, m=m, nbits=NBITS, distance_type="asymmetric")
+        print(f"  ADC recall={r:.4f} {ms:.4f} ms")
 
-    train = load_fvecs(
-        SIFT_DIR / "sift_learn.fvecs"
-    )
+        r, ms = evaluate(model.search_symmetric, queries, gt)
+        out["PQ"][f"m{m}_nbits{NBITS}_sdc"] = entry(
+            r, ms, b, size, m=m, nbits=NBITS, distance_type="symmetric")
+        print(f"  SDC recall={r:.4f} {ms:.4f} ms")
 
-    ground_truth = load_ivecs(
-        SIFT_DIR / "sift_groundtruth.ivecs"
-    )[:, :10]
+    # ---- IVF: build once, sweep nprobe ----
+    print(f"\n[IVF] nlist={nlist}")
+    model = IVF(nlist=nlist, nprobe=1)
+    b = build(model, base, train)
+    size = get_index_size(model)
+    for nprobe in NPROBES:
+        if nprobe > nlist:
+            continue
+        set_nprobe(model, nprobe)
+        r, ms = evaluate(model.search, queries, gt)
+        out["IVF"][f"nlist{nlist}_nprobe{nprobe}"] = entry(
+            r, ms, b, size, nlist=nlist, nprobe=nprobe)
+        print(f"  nprobe={nprobe:<4} recall={r:.4f} {ms:.4f} ms")
 
-    print("Base:        ", base.shape)
-    print("Queries:     ", queries.shape)
-    print("Train:       ", train.shape)
-    print("Ground truth:", ground_truth.shape)
+    # ---- IVF+PQ: one build per m, sweep nprobe ----
+    for m in cfg["pq_ms"]:
+        if d % m != 0:
+            continue
+        print(f"\n[IVF+PQ] nlist={nlist} m={m}")
+        model = IVFPQ(nlist=nlist, nprobe=1, m=m, nbits=NBITS)
+        b = build(model, base, train)
+        size = get_index_size(model)
+        for nprobe in NPROBES:
+            if nprobe > nlist:
+                continue
+            set_nprobe(model, nprobe)
+            r, ms = evaluate(model.search, queries, gt)
+            out["IVF+PQ"][f"nlist{nlist}_nprobe{nprobe}_m{m}"] = entry(
+                r, ms, b, size, nlist=nlist, nprobe=nprobe, m=m, nbits=NBITS)
+            print(f"  nprobe={nprobe:<4} recall={r:.4f} {ms:.4f} ms")
 
-    results = {
-        "dataset": {
-            "base_vectors": len(base),
-            "query_vectors": len(queries),
-            "train_vectors": len(train),
-            "dimensions": base.shape[1],
-        }
-    }
-    
-    # PQ - Asymmetric Distance Calculation (ADC)
+    return out
 
-    results["PQ-ADC"] = {
-        "parameters": {
-            "m": 8,
-            "nbits": 8,
-            "distance_type": "asymmetric",
-        },
-        **benchmark_method(
-            "PQ (Asymmetric)",
-            PQ(
-                m=8,
-                nbits=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-            search_type="default",
-        ),
-    }
 
-    # PQ - Symmetric Distance Calculation (SDC
+def load_sift():
+    base = load_fvecs(SIFT_DIR / "sift_base.fvecs")
+    queries = load_fvecs(SIFT_DIR / "sift_query.fvecs")
+    train = load_fvecs(SIFT_DIR / "sift_learn.fvecs")
+    gt = load_ivecs(SIFT_DIR / "sift_groundtruth.ivecs")[:, :K]
+    return base, train, queries, gt
 
-    results["PQ-SDC"] = {
-        "parameters": {
-            "m": 8,
-            "nbits": 8,
-            "distance_type": "symmetric",
-        },
-        **benchmark_method(
-            "PQ (Symmetric)",
-            PQ(
-                m=8,
-                nbits=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-            search_type="symmetric",
-        ),
-    }
 
-    # IVF
-    results["IVF"] = {
-        "parameters": {
-            "nlist": 1024,
-            "nprobe": 8,
-        },
-        **benchmark_method(
-            "IVF",
-            IVF(
-                nlist=1024,
-                nprobe=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-        ),
-    }
-
-    # IVF + PQ
-    results["IVF+PQ"] = {
-        "parameters": {
-            "nlist": 1024,
-            "nprobe": 8,
-            "m": 8,
-            "nbits": 8,
-        },
-        **benchmark_method(
-            "IVF+PQ",
-            IVFPQ(
-                nlist=1024,
-                nprobe=8,
-                m=8,
-                nbits=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-        ),
-    }
-
-    return results
+def load_wiki():
+    f32 = lambda name: np.load(WIKI_DIR / name).astype(np.float32)
+    base = normalize_vectors(f32("wiki_base_embeddings.npy"))
+    queries = normalize_vectors(f32("wiki_query_embeddings.npy"))
+    train = normalize_vectors(f32("wiki_train_embeddings.npy"))
+    gt = wiki_ground_truth(base, queries)
+    return base, train, queries, gt
 
 
 # =================================================
-# Wikipedia
+# Saving and plotting
 # =================================================
 
-def run_wiki():
-    print("\n\n==============================")
-    print("WIKIPEDIA BENCHMARK")
-    print("==============================")
+FILE_FOR = {"PQ": "pq", "IVF": "ivf", "IVF+PQ": "ivf_pq"}
 
-    # Load Wikipedia embeddings
-    base = np.load(
-        WIKI_DIR / "wiki_base_embeddings.npy"
-    ).astype(np.float32)
 
-    queries = np.load(
-        WIKI_DIR / "wiki_query_embeddings.npy"
-    ).astype(np.float32)
+def save_results(results):
+    """results = {dataset_key: {method: {param: entry}}} -> one file/method."""
+    for method, stem in FILE_FOR.items():
+        payload = {ds: res[method] for ds, res in results.items()}
+        path = RESULTS_DIR / f"{stem}_results.json"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=4)
+        print("saved", path)
 
-    train = np.load(
-        WIKI_DIR / "wiki_train_embeddings.npy"
-    ).astype(np.float32)
 
-    # Load precomputed ground truth
-    ground_truth = np.load(
-        WIKI_DIR / "wiki_groundtruth.npy"
-    )[:, :10]
-
-    print("Base:        ", base.shape)
-    print("Queries:     ", queries.shape)
-    print("Train:       ", train.shape)
-    print("Ground truth:", ground_truth.shape)
-
-    # Wikipedia uses cosine similarity.
-    # L2 search on normalized vectors gives the same ranking.
-    base = normalize_vectors(base)
-    queries = normalize_vectors(queries)
-    train = normalize_vectors(train)
-
-    results = {
-        "dataset": {
-            "base_vectors": len(base),
-            "query_vectors": len(queries),
-            "train_vectors": len(train),
-            "dimensions": base.shape[1],
-        }
-    }
-
-    # PQ - Asymmetric Distance Calculation (ADC)
-
-    results["PQ-ADC"] = {
-        "parameters": {
-            "m": 8,
-            "nbits": 8,
-            "distance_type": "asymmetric",
-        },
-        **benchmark_method(
-            "PQ (Asymmetric)",
-            PQ(
-                m=8,
-                nbits=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-            search_type="default",
-        ),
-    }
-    # PQ - Symmetric Distance Calculation (SD
-
-    results["PQ-SDC"] = {
-        "parameters": {
-            "m": 8,
-            "nbits": 8,
-            "distance_type": "symmetric",
-        },
-        **benchmark_method(
-            "PQ (Symmetric)",
-            PQ(
-                m=8,
-                nbits=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-            search_type="symmetric",
-        ),
-    }
-
-    # IVF
-    results["IVF"] = {
-        "parameters": {
-            "nlist": 512,
-            "nprobe": 8,
-        },
-        **benchmark_method(
-            "IVF",
-            IVF(
-                nlist=512,
-                nprobe=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-        ),
-    }
-
-    # IVF + PQ
-    results["IVF+PQ"] = {
-        "parameters": {
-            "nlist": 512,
-            "nprobe": 8,
-            "m": 8,
-            "nbits": 8,
-        },
-        **benchmark_method(
-            "IVF+PQ",
-            IVFPQ(
-                nlist=512,
-                nprobe=8,
-                m=8,
-                nbits=8,
-            ),
-            base,
-            train,
-            queries,
-            ground_truth,
-        ),
-    }
-
-    return results
+def plot_tradeoff(results):
+    """Recall@10 vs latency (log x) per dataset, plus index sizes printed."""
+    for ds, res in results.items():
+        plt.figure(figsize=(7, 5))
+        for method, marker in [("IVF", "o"), ("IVF+PQ", "s"), ("PQ", "^")]:
+            pts = sorted(
+                (e["avg_query_time_ms"], e["recall_at_10"])
+                for e in res[method].values()
+            )
+            if pts:
+                xs, ys = zip(*pts)
+                plt.plot(xs, ys, marker=marker, label=method)
+        plt.xscale("log")
+        plt.xlabel("Average query time (ms, log)")
+        plt.ylabel("Recall@10")
+        plt.ylim(0, 1.02)
+        plt.title(f"Recall vs latency ({ds})")
+        plt.grid(alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(RESULTS_DIR / f"pq_ivf_recall_vs_latency_{ds}.png", dpi=300)
+        plt.close()
 
 
 # =================================================
@@ -609,39 +281,24 @@ def run_wiki():
 # =================================================
 
 if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--datasets", nargs="+", default=["sift", "wiki"],
+                    choices=["sift", "wiki"])
+    args = ap.parse_args()
 
-    all_results = {
-        "SIFT1M": run_sift(),
-        "Wikipedia": run_wiki(),
-    }
+    results = {}
+    if "sift" in args.datasets:
+        print("\n===== SIFT1M =====")
+        base, train, queries, gt = load_sift()
+        print(base.shape, train.shape, queries.shape, gt.shape)
+        results[SIFT_KEY] = run_dataset(base, train, queries, gt, SIFT_CFG)
 
-    with open(
-        OUTPUT_PATH,
-        "w",
-        encoding="utf-8",
-    ) as f:
-        json.dump(
-            all_results,
-            f,
-            indent=4,
-        )
+    if "wiki" in args.datasets:
+        print("\n===== Wikipedia =====")
+        base, train, queries, gt = load_wiki()
+        print(base.shape, train.shape, queries.shape, gt.shape)
+        results[WIKI_KEY] = run_dataset(base, train, queries, gt, WIKI_CFG)
 
-    print("\n\n==============================")
-    print("BENCHMARK COMPLETE")
-    print("==============================")
-
-    print(
-        "Results saved to:",
-        OUTPUT_PATH,
-    )
-
-    # Plot benchmark results
-    plot_results(all_results)
-
-    print(
-        "\nNote: query timing includes a very "
-        "small amount of Python overhead from "
-        "storing returned neighbour IDs. The "
-        "same evaluation structure is used for "
-        "PQ, IVF, and IVF+PQ."
-    )
+    save_results(results)
+    plot_tradeoff(results)
+    print("\nDone.")
