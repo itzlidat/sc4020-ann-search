@@ -1,20 +1,3 @@
-"""
-Benchmark PQ (ADC and SDC), IVF and IVF+PQ on SIFT1M and Wikipedia.
-
-Run from the repo root:
-    python -m eval.run_pq_ivf                 # both datasets
-    python -m eval.run_pq_ivf --datasets sift # one dataset
-
-Metrics: recall@10, average query latency (ms), index size (MB), build time (s).
-
-Output (shared schema, same as Annoy/HNSW), one file per method:
-    results/pq_results.json
-    results/ivf_results.json
-    results/ivf_pq_results.json
-    {"sift1m": {"<param>": {recall_at_10, avg_query_time_ms,
-                            build_time_sec, index_size_mb, ...}}}
-"""
-
 import argparse
 import json
 import sys
