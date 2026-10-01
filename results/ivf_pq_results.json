@@ -1,0 +1,566 @@
+{
+    "sift1m": {
+        "nlist1024_nprobe1_m8": {
+            "recall_at_10": 0.25478999999999996,
+            "avg_query_time_ms": 0.018355292384512722,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 1,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe2_m8": {
+            "recall_at_10": 0.30834,
+            "avg_query_time_ms": 0.02181373492348939,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 2,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe4_m8": {
+            "recall_at_10": 0.34652999999999995,
+            "avg_query_time_ms": 0.027654238254763184,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 4,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe8_m8": {
+            "recall_at_10": 0.36602999999999997,
+            "avg_query_time_ms": 0.038925836235284804,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 8,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe16_m8": {
+            "recall_at_10": 0.37516,
+            "avg_query_time_ms": 0.0627934655873105,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 16,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe32_m8": {
+            "recall_at_10": 0.37788,
+            "avg_query_time_ms": 0.10641313835512847,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 32,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe64_m8": {
+            "recall_at_10": 0.37851999999999997,
+            "avg_query_time_ms": 0.18849257975816727,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 64,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe128_m8": {
+            "recall_at_10": 0.37857,
+            "avg_query_time_ms": 0.3347990974551067,
+            "build_time_sec": 5.524566584033892,
+            "index_size_mb": 15.891773223876953,
+            "nlist": 1024,
+            "nprobe": 128,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist1024_nprobe1_m16": {
+            "recall_at_10": 0.32485,
+            "avg_query_time_ms": 0.032970180897973475,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 1,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe2_m16": {
+            "recall_at_10": 0.41561000000000003,
+            "avg_query_time_ms": 0.0374571627471596,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 2,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe4_m16": {
+            "recall_at_10": 0.48535,
+            "avg_query_time_ms": 0.0465141786262393,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 4,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe8_m16": {
+            "recall_at_10": 0.5283800000000001,
+            "avg_query_time_ms": 0.06440014180261643,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 8,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe16_m16": {
+            "recall_at_10": 0.5508200000000001,
+            "avg_query_time_ms": 0.10021286122500896,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 16,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe32_m16": {
+            "recall_at_10": 0.55961,
+            "avg_query_time_ms": 0.1695751749444753,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 32,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe64_m16": {
+            "recall_at_10": 0.56179,
+            "avg_query_time_ms": 0.30160064809024334,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 64,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe128_m16": {
+            "recall_at_10": 0.56208,
+            "avg_query_time_ms": 0.5613084938609972,
+            "build_time_sec": 5.398960542166606,
+            "index_size_mb": 23.521167755126953,
+            "nlist": 1024,
+            "nprobe": 128,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist1024_nprobe1_m32": {
+            "recall_at_10": 0.36666999999999994,
+            "avg_query_time_ms": 0.03916108494158834,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 1,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe2_m32": {
+            "recall_at_10": 0.4895,
+            "avg_query_time_ms": 0.04764268230646849,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 2,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe4_m32": {
+            "recall_at_10": 0.59468,
+            "avg_query_time_ms": 0.06542874174192548,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 4,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe8_m32": {
+            "recall_at_10": 0.66457,
+            "avg_query_time_ms": 0.10045295485761017,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 8,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe16_m32": {
+            "recall_at_10": 0.7029200000000001,
+            "avg_query_time_ms": 0.16792052870150653,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 16,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe32_m32": {
+            "recall_at_10": 0.7199099999999999,
+            "avg_query_time_ms": 0.3051679272204637,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 32,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe64_m32": {
+            "recall_at_10": 0.7251199999999999,
+            "avg_query_time_ms": 0.5544029467040673,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 64,
+            "m": 32,
+            "nbits": 8
+        },
+        "nlist1024_nprobe128_m32": {
+            "recall_at_10": 0.7260199999999999,
+            "avg_query_time_ms": 1.0439062466612086,
+            "build_time_sec": 7.007751667173579,
+            "index_size_mb": 38.77995681762695,
+            "nlist": 1024,
+            "nprobe": 128,
+            "m": 32,
+            "nbits": 8
+        }
+    },
+    "wikipedia": {
+        "nlist512_nprobe1_m8": {
+            "recall_at_10": 0.21300000000000002,
+            "avg_query_time_ms": 0.02421710593625903,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 1,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe2_m8": {
+            "recall_at_10": 0.23820000000000005,
+            "avg_query_time_ms": 0.02815907448530197,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 2,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe4_m8": {
+            "recall_at_10": 0.2497,
+            "avg_query_time_ms": 0.03473692503757775,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 4,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe8_m8": {
+            "recall_at_10": 0.2523,
+            "avg_query_time_ms": 0.044786000391468406,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 8,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe16_m8": {
+            "recall_at_10": 0.25270000000000004,
+            "avg_query_time_ms": 0.06544342613779008,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 16,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe32_m8": {
+            "recall_at_10": 0.2528,
+            "avg_query_time_ms": 0.10544592863880098,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 32,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe64_m8": {
+            "recall_at_10": 0.2529,
+            "avg_query_time_ms": 0.1825415522325784,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 64,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe128_m8": {
+            "recall_at_10": 0.2529,
+            "avg_query_time_ms": 0.3340673123020679,
+            "build_time_sec": 4.2806024588644505,
+            "index_size_mb": 8.758472442626953,
+            "nlist": 512,
+            "nprobe": 128,
+            "m": 8,
+            "nbits": 8
+        },
+        "nlist512_nprobe1_m16": {
+            "recall_at_10": 0.2815,
+            "avg_query_time_ms": 0.0361880655400455,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 1,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe2_m16": {
+            "recall_at_10": 0.3291,
+            "avg_query_time_ms": 0.040109582245349884,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 2,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe4_m16": {
+            "recall_at_10": 0.3545,
+            "avg_query_time_ms": 0.04919292242266238,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 4,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe8_m16": {
+            "recall_at_10": 0.36469999999999997,
+            "avg_query_time_ms": 0.06674462626688182,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 8,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe16_m16": {
+            "recall_at_10": 0.3679,
+            "avg_query_time_ms": 0.10023378790356219,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 16,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe32_m16": {
+            "recall_at_10": 0.3687,
+            "avg_query_time_ms": 0.1637316511478275,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 32,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe64_m16": {
+            "recall_at_10": 0.36889999999999995,
+            "avg_query_time_ms": 0.2890087498817593,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 64,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe128_m16": {
+            "recall_at_10": 0.369,
+            "avg_query_time_ms": 0.5477892798371613,
+            "build_time_sec": 6.918227499816567,
+            "index_size_mb": 12.573169708251953,
+            "nlist": 512,
+            "nprobe": 128,
+            "m": 16,
+            "nbits": 8
+        },
+        "nlist512_nprobe1_m48": {
+            "recall_at_10": 0.38159999999999994,
+            "avg_query_time_ms": 0.0821526397485286,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 1,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe2_m48": {
+            "recall_at_10": 0.4764,
+            "avg_query_time_ms": 0.09049271838739514,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 2,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe4_m48": {
+            "recall_at_10": 0.5377000000000001,
+            "avg_query_time_ms": 0.11068790941499174,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 4,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe8_m48": {
+            "recall_at_10": 0.5728,
+            "avg_query_time_ms": 0.15221839281730354,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 8,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe16_m48": {
+            "recall_at_10": 0.5966,
+            "avg_query_time_ms": 0.24526171782054007,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 16,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe32_m48": {
+            "recall_at_10": 0.6079,
+            "avg_query_time_ms": 0.4421757727395743,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 32,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe64_m48": {
+            "recall_at_10": 0.6120999999999999,
+            "avg_query_time_ms": 0.8175916601903737,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 64,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe128_m48": {
+            "recall_at_10": 0.6145,
+            "avg_query_time_ms": 1.6372943525202572,
+            "build_time_sec": 8.364457207964733,
+            "index_size_mb": 27.831958770751953,
+            "nlist": 512,
+            "nprobe": 128,
+            "m": 48,
+            "nbits": 8
+        },
+        "nlist512_nprobe1_m96": {
+            "recall_at_10": 0.4442,
+            "avg_query_time_ms": 0.11000165645964444,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 1,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe2_m96": {
+            "recall_at_10": 0.5712,
+            "avg_query_time_ms": 0.13558125984854996,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 2,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe4_m96": {
+            "recall_at_10": 0.6663,
+            "avg_query_time_ms": 0.18788113608025014,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 4,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe8_m96": {
+            "recall_at_10": 0.7250000000000001,
+            "avg_query_time_ms": 0.2815151473041624,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 8,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe16_m96": {
+            "recall_at_10": 0.7678,
+            "avg_query_time_ms": 0.47838259604759514,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 16,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe32_m96": {
+            "recall_at_10": 0.7891,
+            "avg_query_time_ms": 0.9192116281483322,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 32,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe64_m96": {
+            "recall_at_10": 0.8025000000000001,
+            "avg_query_time_ms": 1.6147579848766327,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 64,
+            "m": 96,
+            "nbits": 8
+        },
+        "nlist512_nprobe128_m96": {
+            "recall_at_10": 0.8094000000000001,
+            "avg_query_time_ms": 3.231853809207678,
+            "build_time_sec": 14.06890054186806,
+            "index_size_mb": 50.72014236450195,
+            "nlist": 512,
+            "nprobe": 128,
+            "m": 96,
+            "nbits": 8
+        }
+    }
+}

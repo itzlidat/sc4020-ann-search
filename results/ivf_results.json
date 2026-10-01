@@ -1,0 +1,134 @@
+{
+    "sift1m": {
+        "nlist1024_nprobe1": {
+            "recall_at_10": 0.39771999999999996,
+            "avg_query_time_ms": 0.021978815272450446,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 1
+        },
+        "nlist1024_nprobe2": {
+            "recall_at_10": 0.55343,
+            "avg_query_time_ms": 0.032305630692280825,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 2
+        },
+        "nlist1024_nprobe4": {
+            "recall_at_10": 0.70831,
+            "avg_query_time_ms": 0.05485883424989879,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 4
+        },
+        "nlist1024_nprobe8": {
+            "recall_at_10": 0.83711,
+            "avg_query_time_ms": 0.09332071382086723,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 8
+        },
+        "nlist1024_nprobe16": {
+            "recall_at_10": 0.9268700000000001,
+            "avg_query_time_ms": 0.17082918253727258,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 16
+        },
+        "nlist1024_nprobe32": {
+            "recall_at_10": 0.9767899999999999,
+            "avg_query_time_ms": 0.3292722251964733,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 32
+        },
+        "nlist1024_nprobe64": {
+            "recall_at_10": 0.99524,
+            "avg_query_time_ms": 0.7003920939285309,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 64
+        },
+        "nlist1024_nprobe128": {
+            "recall_at_10": 0.99908,
+            "avg_query_time_ms": 1.3062461948255077,
+            "build_time_sec": 1.9901749577838928,
+            "index_size_mb": 496.41858959198,
+            "nlist": 1024,
+            "nprobe": 128
+        }
+    },
+    "wikipedia": {
+        "nlist512_nprobe1": {
+            "recall_at_10": 0.47159999999999996,
+            "avg_query_time_ms": 0.05923200258985162,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 1
+        },
+        "nlist512_nprobe2": {
+            "recall_at_10": 0.6197999999999999,
+            "avg_query_time_ms": 0.07184551819227636,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 2
+        },
+        "nlist512_nprobe4": {
+            "recall_at_10": 0.7432000000000001,
+            "avg_query_time_ms": 0.12267793063074349,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 4
+        },
+        "nlist512_nprobe8": {
+            "recall_at_10": 0.8332999999999999,
+            "avg_query_time_ms": 0.2282604279462248,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 8
+        },
+        "nlist512_nprobe16": {
+            "recall_at_10": 0.9055,
+            "avg_query_time_ms": 0.5427359389141202,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 16
+        },
+        "nlist512_nprobe32": {
+            "recall_at_10": 0.9484000000000001,
+            "avg_query_time_ms": 1.0044354950077832,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 32
+        },
+        "nlist512_nprobe64": {
+            "recall_at_10": 0.9758,
+            "avg_query_time_ms": 2.0948742625769228,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 64
+        },
+        "nlist512_nprobe128": {
+            "recall_at_10": 0.991,
+            "avg_query_time_ms": 4.378574597416446,
+            "build_time_sec": 1.023430374916643,
+            "index_size_mb": 736.990611076355,
+            "nlist": 512,
+            "nprobe": 128
+        }
+    }
+}

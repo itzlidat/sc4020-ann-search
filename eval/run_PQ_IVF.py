@@ -42,7 +42,7 @@ WIKI_DIR = None
 
 # Dataset keys must match what Annoy/HNSW use so the combined plot works.
 SIFT_KEY = "sift1m"
-WIKI_KEY = "wiki"  # <- change if the Annoy/HNSW files use another name
+WIKI_KEY = "wikipedia"
 
 K = 10
 
@@ -346,10 +346,10 @@ if __name__ == "__main__":
     ap.add_argument(
         "--wiki-dir",
         type=Path,
-        default=PROJECT_ROOT / "data" / "wiki",
+        default=PROJECT_ROOT / "data",
         help=(
             "Folder containing the Wikipedia embedding files. "
-            "Default: data/wiki"
+            "Default: data"
         ),
     )
 
@@ -383,6 +383,7 @@ if __name__ == "__main__":
             gt,
             SIFT_CFG,
         )
+        save_results(results)
 
     if "wiki" in args.datasets:
 
@@ -405,8 +406,8 @@ if __name__ == "__main__":
             gt,
             WIKI_CFG,
         )
+        save_results(results)
 
-    save_results(results)
     plot_tradeoff(results)
 
     print("\nDone.")

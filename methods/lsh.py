@@ -245,20 +245,26 @@ SIFT_HASHES_SWEEP = [
 WIKI_STANDARD_CONFIGS = {
     "low": {
         "num_tables": 20,
-        "num_hashes": 4,
-        "bucket_width": 1.0,
+        "num_hashes": 8,
+        "bucket_width": 2.0,
     },
 
     "medium": {
-        "num_tables": 20,
-        "num_hashes": 4,
-        "bucket_width": 1.5,
+        "num_tables": 40,
+        "num_hashes": 8,
+        "bucket_width": 2.0,
     },
 
     "high": {
+        "num_tables": 20,
+        "num_hashes": 8,
+        "bucket_width": 2.5,
+    },
+
+    "very_high": {
         "num_tables": 40,
-        "num_hashes": 4,
-        "bucket_width": 2.0,
+        "num_hashes": 8,
+        "bucket_width": 2.5,
     },
 }
 
@@ -279,7 +285,7 @@ WIKI_WIDTH_SWEEP = [
     2.0,
 ]
 
-WIKI_HASHES = 4
+WIKI_HASHES = 8
 
 
 # ==============================================================
