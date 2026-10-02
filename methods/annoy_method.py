@@ -60,7 +60,7 @@ class Annoy:
         self.index = AnnoyIndex(self.dim, self.metric)
         for i, vec in enumerate(vectors):
             self.index.add_item(i, vec)
-        self.index.build(self.num_trees)
+        self.index.build(self.num_trees, n_jobs=1)  # single-threaded for fair timing
 
     def search(self, query_vector: np.ndarray, k: int = 10, search_k: int = -1) -> List[int]:
         """Return the ids of approximate k nearest neighbours to query_vector.
@@ -140,6 +140,11 @@ def benchmark_dataset(
     finally:
         os.remove(tmp_path)
 
+    # Untimed warm-up pass over every query at the smallest search_k, so the
+    # memory-mapped index is paged in before the first timed search_k.
+    for query_vector in queries:
+        model.search(query_vector, k=K, search_k=min(SEARCH_K_SWEEP))
+
     for search_k in SEARCH_K_SWEEP:
         # Collect retrieved ids as a side effect of the harness's timed search
         # loop, so we run each query only once but still get both timing and
@@ -187,8 +192,8 @@ def main() -> None:
 
     # --- Wikipedia (no precomputed ground truth: compute via brute-force
     # cosine similarity, i.e. Euclidean distance over L2-normalized vectors) ---
-    wiki_base = np.load(os.path.join(PROJECT_ROOT, "data", "wiki_base_embeddings.npy"))
-    wiki_query = np.load(os.path.join(PROJECT_ROOT, "data", "wiki_query_embeddings.npy"))
+    wiki_base = np.load(os.path.join(PROJECT_ROOT, "data", "wiki", "wiki_base_embeddings.npy"))
+    wiki_query = np.load(os.path.join(PROJECT_ROOT, "data", "wiki", "wiki_query_embeddings.npy"))
 
     wiki_base_norm = wiki_base / np.linalg.norm(wiki_base, axis=1, keepdims=True)
     wiki_query_norm = wiki_query / np.linalg.norm(wiki_query, axis=1, keepdims=True)

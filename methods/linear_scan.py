@@ -141,8 +141,8 @@ def run_sift() -> Dict[str, float | bool]:
 
 
 def run_wikipedia() -> Dict[str, float | bool]:
-    base = np.load(os.path.join(PROJECT_ROOT, "data", "wiki_base_embeddings.npy"))
-    query = np.load(os.path.join(PROJECT_ROOT, "data", "wiki_query_embeddings.npy"))
+    base = np.load(os.path.join(PROJECT_ROOT, "data", "wiki", "wiki_base_embeddings.npy"))
+    query = np.load(os.path.join(PROJECT_ROOT, "data", "wiki", "wiki_query_embeddings.npy"))
 
     base_norm = np.linalg.norm(base, axis=1, keepdims=True)
     query_norm = np.linalg.norm(query, axis=1, keepdims=True)

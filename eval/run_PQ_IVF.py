@@ -284,8 +284,10 @@ FILE_FOR = {"PQ": "pq", "IVF": "ivf", "IVF+PQ": "ivf_pq"}
 def save_results(results):
     """results = {dataset_key: {method: {param: entry}}} -> one file/method."""
     for method, stem in FILE_FOR.items():
-        payload = {ds: res[method] for ds, res in results.items()}
         path = RESULTS_DIR / f"{stem}_results.json"
+        # Merge into the existing file so a single-dataset run keeps the other.
+        payload = json.loads(path.read_text()) if path.exists() else {}
+        payload.update({ds: res[method] for ds, res in results.items()})
         with open(path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=4)
         print("saved", path)
@@ -346,14 +348,18 @@ if __name__ == "__main__":
     ap.add_argument(
         "--wiki-dir",
         type=Path,
-        default=PROJECT_ROOT / "data",
+        default=PROJECT_ROOT / "data" / "wiki",
         help=(
             "Folder containing the Wikipedia embedding files. "
-            "Default: data"
+            "Default: data/wiki"
         ),
     )
 
     args = ap.parse_args()
+
+    # Single-threaded so timings are comparable across methods.
+    import faiss
+    faiss.omp_set_num_threads(1)
 
     # Make dataset directories available to the
     # loading functions.

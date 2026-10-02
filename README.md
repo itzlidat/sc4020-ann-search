@@ -24,7 +24,9 @@ the shared evaluation harness in `eval/harness.py`.
 
 ```
 sc4020-ann-search/
-├── data/           # .npy embedding files (not committed, see below)
+├── data/           # datasets (not committed, see below)
+│   ├── sift/       # SIFT1M .fvecs/.ivecs files
+│   └── wiki/       # Wikipedia embedding .npy files
 ├── methods/        # one file per ANN method, each with build_index()/search() stubs
 ├── eval/           # shared evaluation utilities (recall, timing, index size)
 ├── results/        # output plots and CSVs
@@ -42,14 +44,30 @@ pip install -r requirements.txt
 
 ## Data
 
-Embedding `.npy` files (SIFT1M vectors and Wikipedia sentence embeddings)
-are **not committed** to this repo — they're shared separately among the
+Dataset files (SIFT1M vectors and Wikipedia sentence embeddings) are
+**not committed** to this repo — they're shared separately among the
 group.
 
 - Download link: **TODO — add shared drive/cloud link here**
 
-Place downloaded files under `data/` before running any method or
-notebook.
+Place the files in this layout before running any method:
+
+```
+data/
+├── sift/
+│   ├── sift_base.fvecs
+│   ├── sift_query.fvecs
+│   ├── sift_learn.fvecs
+│   └── sift_groundtruth.ivecs
+└── wiki/
+    ├── wiki_base_embeddings.npy
+    ├── wiki_query_embeddings.npy
+    ├── wiki_train_embeddings.npy
+    └── wiki_sentences.json
+```
+
+`eval/run_PQ_IVF.py` also caches Wikipedia ground truth as
+`data/wiki/wiki_groundtruth_l2norm.npy` on first run.
 
 ## Contributing a method
 

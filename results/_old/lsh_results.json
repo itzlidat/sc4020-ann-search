@@ -8,12 +8,12 @@
         "num_hashes": 8,
         "bucket_width": 496.4174,
         "recall_at_10": 0.34521,
-        "avg_query_time_ms": 1.8490289913257585,
-        "build_time_sec": 10.981031707953662,
+        "avg_query_time_ms": 1.0496852761105402,
+        "build_time_sec": 7.276196583996352,
         "index_size_mb": 548.1354026794434,
         "avg_candidates": 6138.5073,
         "candidate_pct": 0.61385073,
-        "qps": 540.8244028034399
+        "qps": 952.6665018160093
       },
       "medium": {
         "configuration": "medium",
@@ -21,12 +21,12 @@
         "num_hashes": 8,
         "bucket_width": 744.6261,
         "recall_at_10": 0.71578,
-        "avg_query_time_ms": 14.932911327434704,
-        "build_time_sec": 8.926558791892603,
+        "avg_query_time_ms": 9.492729618857993,
+        "build_time_sec": 6.6526408749996335,
         "index_size_mb": 540.2909107208252,
         "avg_candidates": 51881.0355,
         "candidate_pct": 5.18810355,
-        "qps": 66.96617813318176
+        "qps": 105.3437778332407
       },
       "high": {
         "configuration": "high",
@@ -34,12 +34,12 @@
         "num_hashes": 8,
         "bucket_width": 992.8348,
         "recall_at_10": 0.8934599999999998,
-        "avg_query_time_ms": 45.81999342273921,
-        "build_time_sec": 8.81992791686207,
+        "avg_query_time_ms": 29.112928615779673,
+        "build_time_sec": 7.954703374998644,
         "index_size_mb": 539.1213798522949,
         "avg_candidates": 165845.4182,
         "candidate_pct": 16.58454182,
-        "qps": 21.82453390540487
+        "qps": 34.34900051443069
       }
     }
   },
@@ -52,12 +52,12 @@
         "num_hashes": 8,
         "bucket_width": 2.0,
         "recall_at_10": 0.436,
-        "avg_query_time_ms": 16.399976214393973,
-        "build_time_sec": 9.683843290898949,
+        "avg_query_time_ms": 14.512079834239557,
+        "build_time_sec": 9.818214624887332,
         "index_size_mb": 784.3053607940674,
         "avg_candidates": 35317.949,
         "candidate_pct": 7.0635898,
-        "qps": 60.97569819170331
+        "qps": 68.90811044469427
       },
       "medium": {
         "configuration": "medium",
@@ -65,12 +65,12 @@
         "num_hashes": 8,
         "bucket_width": 2.0,
         "recall_at_10": 0.6604000000000001,
-        "avg_query_time_ms": 30.3241229634732,
-        "build_time_sec": 19.146910875104368,
+        "avg_query_time_ms": 26.189584949985147,
+        "build_time_sec": 19.213469374924898,
         "index_size_mb": 834.4150686264038,
         "avg_candidates": 66838.374,
         "candidate_pct": 13.3676748,
-        "qps": 32.97704607003955
+        "qps": 38.18311752208838
       },
       "high": {
         "configuration": "high",
@@ -78,12 +78,12 @@
         "num_hashes": 8,
         "bucket_width": 2.5,
         "recall_at_10": 0.7112,
-        "avg_query_time_ms": 46.505427015945315,
-        "build_time_sec": 9.418584291823208,
+        "avg_query_time_ms": 38.35286493971944,
+        "build_time_sec": 9.26315658306703,
         "index_size_mb": 781.5727062225342,
         "avg_candidates": 105331.428,
         "candidate_pct": 21.0662856,
-        "qps": 21.50286674407118
+        "qps": 26.07367146031295
       },
       "very_high": {
         "configuration": "very_high",
@@ -91,12 +91,12 @@
         "num_hashes": 8,
         "bucket_width": 2.5,
         "recall_at_10": 0.9014000000000001,
-        "avg_query_time_ms": 76.19837336754426,
-        "build_time_sec": 18.907784624956548,
+        "avg_query_time_ms": 63.734233160037554,
+        "build_time_sec": 19.08713429211639,
         "index_size_mb": 828.8783130645752,
         "avg_candidates": 184351.46,
         "candidate_pct": 36.870292,
-        "qps": 13.12363972884935
+        "qps": 15.690155045703397
       }
     }
   }

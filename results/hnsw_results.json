@@ -2,76 +2,76 @@
   "sift1m": {
     "16": {
       "recall_at_10": 0.8015,
-      "avg_query_time_ms": 0.0955875851213932,
-      "build_time_sec": 91.7515156249865,
-      "index_size_mb": 629.9199104309082
+      "avg_query_time_ms": 0.07132714607287198,
+      "build_time_sec": 469.70459595811553,
+      "index_size_mb": 629.9199752807617
     },
     "32": {
-      "recall_at_10": 0.90355,
-      "avg_query_time_ms": 0.14977800513152034,
-      "build_time_sec": 91.7515156249865,
-      "index_size_mb": 629.9199104309082
+      "recall_at_10": 0.90351,
+      "avg_query_time_ms": 0.11112989268731326,
+      "build_time_sec": 469.70459595811553,
+      "index_size_mb": 629.9199752807617
     },
     "64": {
-      "recall_at_10": 0.9637900000000001,
-      "avg_query_time_ms": 0.236596953071421,
-      "build_time_sec": 91.7515156249865,
-      "index_size_mb": 629.9199104309082
+      "recall_at_10": 0.9633299999999999,
+      "avg_query_time_ms": 0.18818859725724904,
+      "build_time_sec": 469.70459595811553,
+      "index_size_mb": 629.9199752807617
     },
     "128": {
-      "recall_at_10": 0.98921,
-      "avg_query_time_ms": 0.39580428997287526,
-      "build_time_sec": 91.7515156249865,
-      "index_size_mb": 629.9199104309082
+      "recall_at_10": 0.9892900000000001,
+      "avg_query_time_ms": 0.33147786736954,
+      "build_time_sec": 469.70459595811553,
+      "index_size_mb": 629.9199752807617
     },
     "256": {
-      "recall_at_10": 0.9972700000000001,
-      "avg_query_time_ms": 0.709264681627974,
-      "build_time_sec": 91.7515156249865,
-      "index_size_mb": 629.9199104309082
+      "recall_at_10": 0.9973299999999999,
+      "avg_query_time_ms": 0.5947447594953701,
+      "build_time_sec": 469.70459595811553,
+      "index_size_mb": 629.9199752807617
     },
     "512": {
-      "recall_at_10": 0.9990699999999999,
-      "avg_query_time_ms": 1.2822561154607683,
-      "build_time_sec": 91.7515156249865,
-      "index_size_mb": 629.9199104309082
+      "recall_at_10": 0.99908,
+      "avg_query_time_ms": 1.1065034600440413,
+      "build_time_sec": 469.70459595811553,
+      "index_size_mb": 629.9199752807617
     }
   },
   "wikipedia": {
     "16": {
-      "recall_at_10": 0.7795000000000001,
-      "avg_query_time_ms": 0.279462949198205,
-      "build_time_sec": 144.1600067500258,
+      "recall_at_10": 0.7786,
+      "avg_query_time_ms": 0.16491575143299997,
+      "build_time_sec": 647.2997665829025,
       "index_size_mb": 803.2381706237793
     },
     "32": {
-      "recall_at_10": 0.8705,
-      "avg_query_time_ms": 0.4460425266297534,
-      "build_time_sec": 144.1600067500258,
+      "recall_at_10": 0.8696000000000002,
+      "avg_query_time_ms": 0.2530723086092621,
+      "build_time_sec": 647.2997665829025,
       "index_size_mb": 803.2381706237793
     },
     "64": {
-      "recall_at_10": 0.9329000000000001,
-      "avg_query_time_ms": 0.7305999458767474,
-      "build_time_sec": 144.1600067500258,
+      "recall_at_10": 0.932,
+      "avg_query_time_ms": 0.42075114347971976,
+      "build_time_sec": 647.2997665829025,
       "index_size_mb": 803.2381706237793
     },
     "128": {
-      "recall_at_10": 0.9691000000000001,
-      "avg_query_time_ms": 1.2414592768182047,
-      "build_time_sec": 144.1600067500258,
+      "recall_at_10": 0.9689000000000001,
+      "avg_query_time_ms": 0.7436998125631362,
+      "build_time_sec": 647.2997665829025,
       "index_size_mb": 803.2381706237793
     },
     "256": {
-      "recall_at_10": 0.9884000000000001,
-      "avg_query_time_ms": 2.222728606313467,
-      "build_time_sec": 144.1600067500258,
+      "recall_at_10": 0.9881000000000001,
+      "avg_query_time_ms": 1.3248697149101645,
+      "build_time_sec": 647.2997665829025,
       "index_size_mb": 803.2381706237793
     },
     "512": {
-      "recall_at_10": 0.9946999999999999,
-      "avg_query_time_ms": 3.971224064065609,
-      "build_time_sec": 144.1600067500258,
+      "recall_at_10": 0.9945,
+      "avg_query_time_ms": 2.3972139332909137,
+      "build_time_sec": 647.2997665829025,
       "index_size_mb": 803.2381706237793
     }
   }

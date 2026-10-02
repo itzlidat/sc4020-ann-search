@@ -2,17 +2,17 @@
   "sift1m": {
     "optimised": true,
     "recall_at_10": 0.9993200000000001,
-    "avg_query_time_ms": 15.065444420906715,
-    "build_time_sec": 0.13485629111528397,
+    "avg_query_time_ms": 11.300049447193668,
+    "build_time_sec": 0.04111333300170372,
     "index_size_mb": 488.2813720703125,
-    "qps": 66.37706608988405
+    "qps": 88.49518797887622
   },
   "wikipedia": {
     "optimised": true,
     "recall_at_10": 1.0,
-    "avg_query_time_ms": 15.400628557195887,
-    "build_time_sec": 0.20565279200673103,
+    "avg_query_time_ms": 12.534564783949463,
+    "build_time_sec": 0.21133320900116814,
     "index_size_mb": 732.4219970703125,
-    "qps": 64.93241469243499
+    "qps": 79.77939539476489
   }
 }

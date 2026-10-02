@@ -49,6 +49,7 @@ class HNSW:
             ef_construction=self.ef_construction,
             M=self.M,
         )
+        self.index.set_num_threads(1)  # single-threaded for fair timing
         self.index.add_items(vectors, np.arange(num_elements))
 
     def search(
@@ -161,8 +162,8 @@ def main() -> None:
     gc.collect()
 
     # --- Wikipedia (Cosine Similarity via Inner Product over L2-normalized vectors) ---
-    wiki_base = np.load(os.path.join(PROJECT_ROOT, "data", "wiki_base_embeddings.npy"))
-    wiki_query = np.load(os.path.join(PROJECT_ROOT, "data", "wiki_query_embeddings.npy"))
+    wiki_base = np.load(os.path.join(PROJECT_ROOT, "data", "wiki", "wiki_base_embeddings.npy"))
+    wiki_query = np.load(os.path.join(PROJECT_ROOT, "data", "wiki", "wiki_query_embeddings.npy"))
 
     wiki_base_norm = wiki_base / np.linalg.norm(wiki_base, axis=1, keepdims=True)
     wiki_query_norm = wiki_query / np.linalg.norm(wiki_query, axis=1, keepdims=True)

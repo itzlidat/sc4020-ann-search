@@ -2,8 +2,8 @@
     "sift1m": {
         "m8_nbits8_adc": {
             "recall_at_10": 0.3164,
-            "avg_query_time_ms": 1.520309211895801,
-            "build_time_sec": 5.519128000130877,
+            "avg_query_time_ms": 1.862992727663368,
+            "build_time_sec": 4.129920542007312,
             "index_size_mb": 7.754476547241211,
             "m": 8,
             "nbits": 8,
@@ -11,8 +11,8 @@
         },
         "m8_nbits8_sdc": {
             "recall_at_10": 0.20245,
-            "avg_query_time_ms": 2.6720807849895207,
-            "build_time_sec": 5.519128000130877,
+            "avg_query_time_ms": 3.248551935399883,
+            "build_time_sec": 4.129920542007312,
             "index_size_mb": 7.754476547241211,
             "m": 8,
             "nbits": 8,
@@ -20,8 +20,8 @@
         },
         "m16_nbits8_adc": {
             "recall_at_10": 0.54685,
-            "avg_query_time_ms": 3.013661319902167,
-            "build_time_sec": 18.836038333131,
+            "avg_query_time_ms": 3.12138952370733,
+            "build_time_sec": 4.250730959000066,
             "index_size_mb": 15.383871078491211,
             "m": 16,
             "nbits": 8,
@@ -29,8 +29,8 @@
         },
         "m16_nbits8_sdc": {
             "recall_at_10": 0.43392,
-            "avg_query_time_ms": 5.120373328402638,
-            "build_time_sec": 18.836038333131,
+            "avg_query_time_ms": 5.247234137705528,
+            "build_time_sec": 4.250730959000066,
             "index_size_mb": 15.383871078491211,
             "m": 16,
             "nbits": 8,
@@ -38,8 +38,8 @@
         },
         "m32_nbits8_adc": {
             "recall_at_10": 0.7108899999999999,
-            "avg_query_time_ms": 5.977675644052216,
-            "build_time_sec": 26.1252747499384,
+            "avg_query_time_ms": 6.056267603277229,
+            "build_time_sec": 5.140889334026724,
             "index_size_mb": 30.64266014099121,
             "m": 32,
             "nbits": 8,
@@ -47,8 +47,8 @@
         },
         "m32_nbits8_sdc": {
             "recall_at_10": 0.63155,
-            "avg_query_time_ms": 11.595322686666623,
-            "build_time_sec": 26.1252747499384,
+            "avg_query_time_ms": 11.689939215313643,
+            "build_time_sec": 5.140889334026724,
             "index_size_mb": 30.64266014099121,
             "m": 32,
             "nbits": 8,
@@ -58,8 +58,8 @@
     "wikipedia": {
         "m8_nbits8_adc": {
             "recall_at_10": 0.10210000000000001,
-            "avg_query_time_ms": 0.7715688680764288,
-            "build_time_sec": 4.751783750019968,
+            "avg_query_time_ms": 1.048526534345001,
+            "build_time_sec": 3.7745274580083787,
             "index_size_mb": 4.189779281616211,
             "m": 8,
             "nbits": 8,
@@ -67,8 +67,8 @@
         },
         "m8_nbits8_sdc": {
             "recall_at_10": 0.06,
-            "avg_query_time_ms": 1.3486691822763532,
-            "build_time_sec": 4.751783750019968,
+            "avg_query_time_ms": 1.7015098228584975,
+            "build_time_sec": 3.7745274580083787,
             "index_size_mb": 4.189779281616211,
             "m": 8,
             "nbits": 8,
@@ -76,8 +76,8 @@
         },
         "m16_nbits8_adc": {
             "recall_at_10": 0.2861,
-            "avg_query_time_ms": 1.5293083214201033,
-            "build_time_sec": 34.82955479202792,
+            "avg_query_time_ms": 2.1043509186711162,
+            "build_time_sec": 19.467506624991074,
             "index_size_mb": 8.004476547241211,
             "m": 16,
             "nbits": 8,
@@ -85,8 +85,8 @@
         },
         "m16_nbits8_sdc": {
             "recall_at_10": 0.14490000000000003,
-            "avg_query_time_ms": 2.566211140714586,
-            "build_time_sec": 34.82955479202792,
+            "avg_query_time_ms": 3.359395179664716,
+            "build_time_sec": 19.467506624991074,
             "index_size_mb": 8.004476547241211,
             "m": 16,
             "nbits": 8,
@@ -94,8 +94,8 @@
         },
         "m48_nbits8_adc": {
             "recall_at_10": 0.6353,
-            "avg_query_time_ms": 4.522483003558591,
-            "build_time_sec": 32.02712500002235,
+            "avg_query_time_ms": 4.701128640910611,
+            "build_time_sec": 6.529989167116582,
             "index_size_mb": 23.26326560974121,
             "m": 48,
             "nbits": 8,
@@ -103,8 +103,8 @@
         },
         "m48_nbits8_sdc": {
             "recall_at_10": 0.485,
-            "avg_query_time_ms": 10.173641398083419,
-            "build_time_sec": 32.02712500002235,
+            "avg_query_time_ms": 10.203709967434406,
+            "build_time_sec": 6.529989167116582,
             "index_size_mb": 23.26326560974121,
             "m": 48,
             "nbits": 8,
@@ -112,8 +112,8 @@
         },
         "m96_nbits8_adc": {
             "recall_at_10": 0.7992,
-            "avg_query_time_ms": 9.074046946596354,
-            "build_time_sec": 43.56975087500177,
+            "avg_query_time_ms": 9.126587429316714,
+            "build_time_sec": 9.69178970810026,
             "index_size_mb": 46.15144920349121,
             "m": 96,
             "nbits": 8,
@@ -121,8 +121,8 @@
         },
         "m96_nbits8_sdc": {
             "recall_at_10": 0.7367,
-            "avg_query_time_ms": 22.38509824150242,
-            "build_time_sec": 43.56975087500177,
+            "avg_query_time_ms": 22.353035465814173,
+            "build_time_sec": 9.69178970810026,
             "index_size_mb": 46.15144920349121,
             "m": 96,
             "nbits": 8,

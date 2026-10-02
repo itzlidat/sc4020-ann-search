@@ -1262,6 +1262,7 @@ def run_wikipedia():
         os.path.join(
             PROJECT_ROOT,
             "data",
+            "wiki",
             "wiki_base_embeddings.npy",
         )
     )
@@ -1270,6 +1271,7 @@ def run_wikipedia():
         os.path.join(
             PROJECT_ROOT,
             "data",
+            "wiki",
             "wiki_query_embeddings.npy",
         )
     )
