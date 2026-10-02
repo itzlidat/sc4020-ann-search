@@ -5,5 +5,5 @@ venv/
 *.pyc
 .ipynb_checkpoints/
 .DS_Store
-**/.DS_Storeresults/_old/
+**/.DS_Store
 results/_old/
