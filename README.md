@@ -27,10 +27,9 @@ sc4020-ann-search/
 ├── data/           # datasets (not committed, see below)
 │   ├── sift/       # SIFT1M .fvecs/.ivecs files
 │   └── wiki/       # Wikipedia embedding .npy files
-├── methods/        # one file per ANN method, each with build_index()/search() stubs
+├── methods/        # one file per ANN method, each with build_index()/search()
 ├── eval/           # shared evaluation utilities (recall, timing, index size)
-├── results/        # output plots and CSVs
-├── notebooks/      # exploratory Jupyter notebooks
+├── results/        # results JSONs and plots
 └── requirements.txt
 ```
 
@@ -42,13 +41,20 @@ source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+**Apple Silicon note:** `annoy` is compiled from source on install, and
+with recent Apple clang its default `-ffast-math` build returns wrong
+neighbours (recall@10 ≈ 0). Rebuild it without that flag:
+
+```bash
+ANNOY_COMPILER_ARGS="-D_CRT_SECURE_NO_WARNINGS,-fpermissive,-O3,-std=c++14,-DANNOYLIB_MULTITHREADED_BUILD" \
+  pip install --no-cache-dir --force-reinstall --no-deps annoy
+```
+
 ## Data
 
 Dataset files (SIFT1M vectors and Wikipedia sentence embeddings) are
-**not committed** to this repo — they're shared separately among the
-group.
-
-- Download link: **TODO — add shared drive/cloud link here**
+**not included** in this repo or submission — they're provided
+separately.
 
 Place the files in this layout before running any method:
 
