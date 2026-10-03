@@ -7,3 +7,12 @@ venv/
 .DS_Store
 **/.DS_Store
 results/_old/
+*.ann
+*.npy
+
+# Course brief (not ours to publish)
+project1 technical review*.pdf
+
+# Built report: repo is public, keep out until after submission (18 Oct 2026)
+reports/group_*_report.docx
+reports/group_*_report.pdf

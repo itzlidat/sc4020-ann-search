@@ -30,8 +30,6 @@ from data.fvecs_loader import load_fvecs, load_ivecs  # noqa: E402
 # Project paths
 # =================================================
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
 RESULTS_DIR = PROJECT_ROOT / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -107,10 +105,6 @@ def evaluate(search_fn, queries, ground_truth, k=K):
         return ids
 
     _, avg_sec = measure_query_time(timed_search, queries)
-
-    # If the harness does warm-up calls, keep only the real pass.
-    retrieved = retrieved[-len(queries):]
-
     recall = compute_recall_at_k(retrieved, ground_truth, k=k)
     return float(recall), float(avg_sec * 1000)
 
@@ -126,9 +120,7 @@ def entry(recall, ms, build_sec, size_mb, **params):
 
 
 def wiki_ground_truth(base, queries, k=K):
-    """Exact L2 top-k on normalised vectors (same as cosine ranking).
-    Cached on disk. If eval.harness has load_ground_truth, prefer that so
-    everyone shares one ground truth."""
+    """Exact L2 top-k on normalised vectors (same ranking as cosine), cached on disk."""
     cache = WIKI_DIR / "wiki_groundtruth_l2norm.npy"
     if cache.exists():
         return np.load(cache)[:, :k]

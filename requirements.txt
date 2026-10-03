@@ -1,5 +1,5 @@
-numpy
-faiss-cpu
-hnswlib
-annoy
-matplotlib
+numpy==2.5.3
+faiss-cpu==1.15.1
+hnswlib==0.8.0
+annoy==1.17.3
+matplotlib==3.11.2

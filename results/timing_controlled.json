@@ -1,0 +1,165 @@
+{
+  "dataset": "wikipedia",
+  "rounds": [
+    {
+      "order": [
+        "linear_scan",
+        "lsh_low",
+        "ivf_nprobe16",
+        "hnsw_ef64",
+        "annoy_search_k20000",
+        "annoy_search_k100000"
+      ],
+      "avg_query_time_ms": {
+        "linear_scan": 16.26961055956781,
+        "lsh_low": 16.763811317505315,
+        "ivf_nprobe16": 0.5388557550031692,
+        "hnsw_ef64": 0.5969754599500448,
+        "annoy_search_k20000": 5.319546680198982,
+        "annoy_search_k100000": 18.79301318479702
+      },
+      "recall_at_10": {
+        "linear_scan": 1.0,
+        "lsh_low": 0.436,
+        "ivf_nprobe16": 0.9055,
+        "hnsw_ef64": 0.932,
+        "annoy_search_k20000": 0.9270000000000002,
+        "annoy_search_k100000": 0.9865
+      },
+      "loadavg": [
+        1.6298828125,
+        1.84130859375,
+        2.23583984375
+      ],
+      "power": "AC Power"
+    },
+    {
+      "order": [
+        "lsh_low",
+        "ivf_nprobe16",
+        "hnsw_ef64",
+        "annoy_search_k20000",
+        "annoy_search_k100000",
+        "linear_scan"
+      ],
+      "avg_query_time_ms": {
+        "lsh_low": 18.819317280314863,
+        "ivf_nprobe16": 0.5523383824620396,
+        "hnsw_ef64": 0.7390608405694366,
+        "annoy_search_k20000": 5.201325133675709,
+        "annoy_search_k100000": 21.88379222061485,
+        "linear_scan": 23.25566843431443
+      },
+      "recall_at_10": {
+        "linear_scan": 1.0,
+        "lsh_low": 0.436,
+        "ivf_nprobe16": 0.9055,
+        "hnsw_ef64": 0.932,
+        "annoy_search_k20000": 0.9270000000000002,
+        "annoy_search_k100000": 0.9865
+      },
+      "loadavg": [
+        1.4130859375,
+        1.7353515625,
+        2.16259765625
+      ],
+      "power": "AC Power"
+    },
+    {
+      "order": [
+        "ivf_nprobe16",
+        "hnsw_ef64",
+        "annoy_search_k20000",
+        "annoy_search_k100000",
+        "linear_scan",
+        "lsh_low"
+      ],
+      "avg_query_time_ms": {
+        "ivf_nprobe16": 0.9461234877817333,
+        "hnsw_ef64": 0.7558040937874466,
+        "annoy_search_k20000": 4.885623367503285,
+        "annoy_search_k100000": 20.383328644558787,
+        "linear_scan": 21.03823526389897,
+        "lsh_low": 20.488712491700426
+      },
+      "recall_at_10": {
+        "linear_scan": 1.0,
+        "lsh_low": 0.436,
+        "ivf_nprobe16": 0.9055,
+        "hnsw_ef64": 0.932,
+        "annoy_search_k20000": 0.9270000000000002,
+        "annoy_search_k100000": 0.9865
+      },
+      "loadavg": [
+        1.52294921875,
+        1.69775390625,
+        2.11376953125
+      ],
+      "power": "AC Power"
+    },
+    {
+      "order": [
+        "hnsw_ef64",
+        "annoy_search_k20000",
+        "annoy_search_k100000",
+        "linear_scan",
+        "lsh_low",
+        "ivf_nprobe16"
+      ],
+      "avg_query_time_ms": {
+        "hnsw_ef64": 0.4625340572092682,
+        "annoy_search_k20000": 4.793887966312468,
+        "annoy_search_k100000": 18.665921992622316,
+        "linear_scan": 17.901231444440782,
+        "lsh_low": 17.598710933933035,
+        "ivf_nprobe16": 0.5171807804144919
+      },
+      "recall_at_10": {
+        "linear_scan": 1.0,
+        "lsh_low": 0.436,
+        "ivf_nprobe16": 0.9055,
+        "hnsw_ef64": 0.932,
+        "annoy_search_k20000": 0.9270000000000002,
+        "annoy_search_k100000": 0.9865
+      },
+      "loadavg": [
+        1.8427734375,
+        1.7392578125,
+        2.0966796875
+      ],
+      "power": "AC Power"
+    },
+    {
+      "order": [
+        "annoy_search_k20000",
+        "annoy_search_k100000",
+        "linear_scan",
+        "lsh_low",
+        "ivf_nprobe16",
+        "hnsw_ef64"
+      ],
+      "avg_query_time_ms": {
+        "annoy_search_k20000": 4.711250822292641,
+        "annoy_search_k100000": 18.60287925461307,
+        "linear_scan": 16.69025918492116,
+        "lsh_low": 17.824011088348925,
+        "ivf_nprobe16": 0.5026729621458799,
+        "hnsw_ef64": 0.6594537866767496
+      },
+      "recall_at_10": {
+        "linear_scan": 1.0,
+        "lsh_low": 0.436,
+        "ivf_nprobe16": 0.9055,
+        "hnsw_ef64": 0.932,
+        "annoy_search_k20000": 0.9270000000000002,
+        "annoy_search_k100000": 0.9865
+      },
+      "loadavg": [
+        1.7705078125,
+        1.72607421875,
+        2.06591796875
+      ],
+      "power": "AC Power"
+    }
+  ]
+}
